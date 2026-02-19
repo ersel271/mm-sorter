@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# tools/setup.sh
+# set up the development environment: check for virtualenv,
+# install dependencies, and make utility scripts executable
+
+set -e
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VENV_DIR="$PROJECT_ROOT/.venv"
+REQ_FILE="$PROJECT_ROOT/requirements.txt"
+
+if [ ! -f "$REQ_FILE" ]; then
+    echo "error: $REQ_FILE not found"
+    exit 1
+fi
+
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "no active virtualenv detected"
+    if [ ! -d "$VENV_DIR" ]; then
+        echo "creating virtualenv in $VENV_DIR ..."
+        python3 -m venv "$VENV_DIR"
+    fi
+    echo "activate it first, then re-run this script:"
+    echo "  source $VENV_DIR/bin/activate"
+    echo "  bash $0"
+    exit 1
+fi
+
+echo "installing dependencies ..."
+pip install -r "$REQ_FILE"
+
+chmod +x "$PROJECT_ROOT"/tools/*.sh
+
+echo "setup complete"
