@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# tools/run_tests.sh
+# run the full test suite with verbose output and coverage report
+
+set -e
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+python3 -m pytest tests/ \
+    -v \
+    --tb=short \
+    --cov=config \
+    --cov=src \
+    --cov=utils \
+    --cov-report=term-missing \
+    --cov-report=html
