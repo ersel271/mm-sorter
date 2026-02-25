@@ -1,0 +1,88 @@
+# config/config.yaml.template
+# copy this file to config.yaml and adjust values for your setup:
+#   cp config.yaml.template config.yaml
+
+camera:
+  device: 2                  # v4l2 device index (linux: /dev/videoN, windows: 0, 1, 2 ...)
+  width: 1920                # capture width in pixels
+  height: 1080               # capture height in pixels
+  fps: 30                    # target frame rate
+  format: MJPG               # pixel format (MJPG or YUYV)
+  autofocus: false           # set true to enable continuous autofocus
+  focus: 200                 # manual focus value (1--1023), ignored when autofocus is true
+  auto_exposure: 3           # 3 = aperture priority (auto), 1 = manual
+  exposure: 157              # manual exposure time, only used when auto_exposure is 1
+  auto_wb: true              # automatic white balance
+  wb_temperature: 4600       # fixed white balance in kelvin, only used when auto_wb is false
+  power_line_frequency: 1    # anti-flicker: 0 = disabled, 1 = 50Hz, 2 = 60Hz
+
+preprocess:
+  roi_enabled: false         # true to crop a centre region from the frame
+  roi_fraction: 0.9          # fraction of frame to keep when roi is enabled (0.0--1.0)
+  blur_kernel: 5             # gaussian blur kernel size, must be odd
+  sat_threshold: 40          # minimum saturation to consider a pixel as object
+  morph_kernel: 5            # morphological operation kernel size
+  morph_erode_iter: 1        # erosion iterations for mask cleanup
+  morph_dilate_iter: 2       # dilation iterations for mask cleanup
+  min_area: 500              # minimum contour area in pixels to accept as an object
+
+features:
+  hue_bins: 180              # number of bins for the hue histogram
+  hue_smooth_sigma: 3        # gaussian smoothing sigma for hue histogram
+  highlight_value: 240       # V channel threshold for specular highlight detection
+
+thresholds:
+  # stage 1: foreign object rejection
+  sat_min: 60                # minimum mean saturation to accept as M&M
+  highlight_max: 0.20        # maximum specular highlight ratio (0.0--1.0)
+  hue_width_min: 8           # minimum hue peak width in bins
+  texture_max: 500.0         # maximum laplacian variance (texture density)
+
+  # stage 2: shape validation
+  circularity_min: 0.75      # minimum circularity (0.0--1.0), ideal circle = 1.0
+  aspect_ratio_max: 1.35     # maximum aspect ratio, circle = 1.0
+  solidity_min: 0.90         # minimum solidity (0.0--1.0), convex shape = 1.0
+
+  # stage 3: colour matching
+  colour_confidence_min: 0.15  # minimum hue overlap fraction to accept a colour
+
+colours:
+  # each colour defines h (hue ranges), s (saturation range), v (value range)
+  # h supports multiple [min, max] pairs for wrap-around hues like red
+  # s and v are single [min, max] pairs
+  red:
+    h: [[0, 10], [170, 180]]
+    s: [100, 255]
+    v: [50, 255]
+  green:
+    h: [[35, 85]]
+    s: [80, 255]
+    v: [40, 255]
+  blue:
+    h: [[100, 130]]
+    s: [100, 255]
+    v: [40, 255]
+  yellow:
+    h: [[20, 35]]
+    s: [100, 255]
+    v: [100, 255]
+  orange:
+    h: [[10, 20]]
+    s: [120, 255]
+    v: [100, 255]
+  brown:
+    h: [[10, 25]]
+    s: [40, 120]
+    v: [30, 150]
+
+uart:
+  port: /dev/ttyUSB0         # serial port path (linux) or COM port (windows)
+  baud: 115200               # baud rate, must be at least 9600
+  timeout: 0.1               # serial read timeout in seconds
+
+system:
+  log_dir: data/logs         # directory for log files
+  sample_dir: data/samples   # directory for captured sample images
+  log_queue_size: 256        # bounded queue size for async logging
+  display_enabled: true      # show live annotated video window
+  display_scale: 1.0         # scale factor for the display window
