@@ -7,6 +7,10 @@ set -e
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+REPORT_DIR="${PROJECT_ROOT}/_report"
+COV_HTML_DIR="${REPORT_DIR}/htmlcov"
+PYTEST_REPORT="${REPORT_DIR}/report.html"
+
 python3 -m pytest tests/ \
     -v \
     --tb=short \
@@ -14,4 +18,6 @@ python3 -m pytest tests/ \
     --cov=src \
     --cov=utils \
     --cov-report=term-missing \
-    --cov-report=html
+    --cov-report=html:"$COV_HTML_DIR" \
+    --html="$PYTEST_REPORT" \
+    --self-contained-html
