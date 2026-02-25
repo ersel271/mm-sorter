@@ -30,5 +30,6 @@ echo "installing dependencies ..."
 pip install -r "$REQ_FILE"
 
 chmod +x "$PROJECT_ROOT"/tools/*.sh
+mkdir -p _report
 
 echo "setup complete"
