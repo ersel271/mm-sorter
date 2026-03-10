@@ -1,7 +1,7 @@
 *.yaml
 *.txt
 *.log
-!requirements.txt
+!requirements*.txt
 
 __pycache__
 .pytest_cache

@@ -1,0 +1,7 @@
+-r requirements.txt
+
+pytest>=9.0.2
+pytest-cov>=7.0.0
+pytest-xdist>=3.8.0
+pytest-html>=4.2.0
+hypothesis>=6.0
