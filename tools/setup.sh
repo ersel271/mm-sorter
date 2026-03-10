@@ -2,12 +2,19 @@
 # tools/setup.sh
 # set up the development environment: check for virtualenv,
 # install dependencies, and make utility scripts executable
+# usage: bash tools/setup.sh [dev|prod]
 
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VENV_DIR="$PROJECT_ROOT/.venv"
-REQ_FILE="$PROJECT_ROOT/requirements.txt"
+VENV_DIR="$PROJECT_ROOT/testvenv"
+MODE="${1:-prod}"
+
+if [ "$MODE" = "dev" ]; then
+    REQ_FILE="$PROJECT_ROOT/requirements-dev.txt"
+else
+    REQ_FILE="$PROJECT_ROOT/requirements.txt"
+fi
 
 if [ ! -f "$REQ_FILE" ]; then
     echo "error: $REQ_FILE not found"
@@ -26,7 +33,7 @@ if [ -z "$VIRTUAL_ENV" ]; then
     exit 1
 fi
 
-echo "installing dependencies ..."
+echo "installing dependencies ($MODE) ..."
 pip install -r "$REQ_FILE"
 
 chmod +x "$PROJECT_ROOT"/tools/*.sh
