@@ -11,13 +11,8 @@ REPORT_DIR="${PROJECT_ROOT}/_report"
 COV_HTML_DIR="${REPORT_DIR}/htmlcov"
 PYTEST_REPORT="${REPORT_DIR}/report.html"
 
-python3 -m pytest tests/ \
-    -v \
-    --tb=short \
-    --cov=config \
-    --cov=src \
-    --cov=utils \
-    --cov-report=term-missing \
+python3 -m pytest \
+    -c tests/pytest.ini \
     --cov-report=html:"$COV_HTML_DIR" \
     --html="$PYTEST_REPORT" \
     --self-contained-html
