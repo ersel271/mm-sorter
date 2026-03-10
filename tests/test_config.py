@@ -6,7 +6,7 @@ import pytest
 
 from config import Config, ColourID, COLOUR_NAMES
 from config.config import ConfigError
-from tests.conftest import write_config
+from tests.helpers.config_helpers import write_config
 
 @pytest.mark.unit
 class TestConstants:

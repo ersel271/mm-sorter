@@ -6,7 +6,7 @@ import serial
 from config import Config
 from config.constants import UART_SEPARATOR, UART_TERMINATOR
 from src.uart import UARTSender, build_packet
-from tests.conftest import sample_fields
+from tests.helpers.uart_helpers import sample_fields
 
 @pytest.fixture
 def sender(default_cfg, mock_port) -> UARTSender:
