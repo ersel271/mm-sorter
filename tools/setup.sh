@@ -34,7 +34,7 @@ if [ -z "$VIRTUAL_ENV" ]; then
 fi
 
 echo "installing dependencies ($MODE) ..."
-pip install -r "$REQ_FILE"
+pip install -r "$REQ_FILE" > /dev/null
 
 chmod +x "$PROJECT_ROOT"/tools/*.sh
 mkdir -p _report
