@@ -6,40 +6,7 @@ import pytest
 
 from config import Config
 from src.vision.preprocess import Preprocessor, PreprocessResult
-
-@pytest.fixture
-def prep() -> Preprocessor:
-    return Preprocessor(Config())
-
-def make_frame(width=1920, height=1080) -> np.ndarray:
-    """plain black BGR frame."""
-    return np.zeros((height, width, 3), dtype=np.uint8)
-
-def draw_circle(frame, centre=None, radius=50, colour_bgr=(0, 0, 255), sat=200):
-    """
-    draw a filled circle with a given saturation onto a black frame.
-    uses HSV to control saturation precisely, then converts back to BGR.
-    """
-    if centre is None:
-        h, w = frame.shape[:2]
-        centre = (w // 2, h // 2)
-
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    bgr_ref = np.uint8([[colour_bgr]])
-    hsv_ref = cv2.cvtColor(bgr_ref, cv2.COLOR_BGR2HSV)[0][0]
-
-    colour_hsv = (int(hsv_ref[0]), sat, int(hsv_ref[2]))
-    cv2.circle(hsv, centre, radius, colour_hsv, -1)
-    return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-
-def draw_saturated_circle(frame, centre=None, radius=50):
-    """shorthand: bright circle with high saturation drawn onto existing frame."""
-    if centre is None:
-        h, w = frame.shape[:2]
-        centre = (w // 2, h // 2)
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    cv2.circle(hsv, centre, radius, (0, 200, 200), -1)
-    return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+from tests.helpers.image_helpers import make_frame, draw_circle, draw_saturated_circle
 
 @pytest.mark.smoke
 @pytest.mark.unit
@@ -220,34 +187,3 @@ class TestColourConversions:
         frame = make_frame()
         result = prep.process(frame)
         assert result.hsv.dtype == np.uint8
-
-@pytest.mark.integration
-class TestPreprocessIntegration:
-    """verify the full preprocessing pipeline end to end."""
-
-    def test_multiple_objects_finds_largest(self, prep):
-        frame = make_frame()
-        radii = [20, 40, 80, 30]
-        centres = [(200, 200), (600, 400), (960, 540), (1500, 800)]
-        for c, r in zip(centres, radii):
-            frame = draw_saturated_circle(frame, centre=c, radius=r)
-        result = prep.process(frame)
-        assert result.found is True
-        cx, cy = result.centroid
-        assert abs(cx - 960) < 25
-        assert abs(cy - 540) < 25
-
-    def test_pipeline_returns_consistent_shapes(self, prep):
-        frame = draw_saturated_circle(make_frame(), radius=60)
-        result = prep.process(frame)
-        h, w = result.roi.shape[:2]
-        assert result.hsv.shape == (h, w, 3)
-        assert result.gray.shape == (h, w)
-        assert result.mask.shape == (h, w)
-
-    def test_low_saturation_object_not_detected(self, prep):
-        frame = make_frame()
-        # draw a gray circle (low saturation) directly in BGR
-        cv2.circle(frame, (960, 540), 60, (128, 128, 128), -1)
-        result = prep.process(frame)
-        assert result.found is False
