@@ -15,4 +15,5 @@ python3 -m pytest \
     -c tests/pytest.ini \
     --cov-report=html:"$COV_HTML_DIR" \
     --html="$PYTEST_REPORT" \
-    --self-contained-html
+    --self-contained-html \
+    "$@"
