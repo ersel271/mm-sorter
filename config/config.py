@@ -8,8 +8,9 @@ dict-based access to all parameters. Immutable after loading.
 Usage:
     cfg = Config()
     cfg = Config("path/to/config.yaml")
-    device = cfg.camera["device"]
-    red = cfg.colours["red"]
+    
+    device = cfg.camera["device"]          # required field
+    timeout = cfg.uart.get("timeout", 0.1) # optional field with default
 """
 
 import logging
