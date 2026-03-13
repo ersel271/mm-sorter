@@ -66,6 +66,7 @@ def valid_data() -> dict:
         },
         "system": {
             "log_dir": "data/logs",
+            "event_dir": "data/events",
             "sample_dir": "data/samples",
             "log_queue_size": 256,
             "display_enabled": True,
@@ -78,6 +79,7 @@ def tmp_cfg(tmp_path) -> Config:
     cfg = Config()
     data = cfg.as_dict()
     data["system"]["log_dir"] = str(tmp_path / "logs")
+    data["system"]["event_dir"] = str(tmp_path / "events")
 
     cfg_path = tmp_path / "config.yaml"
     with open(cfg_path, "w") as f:
