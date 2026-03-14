@@ -81,7 +81,8 @@ uart:
   timeout: 0.1               # serial read timeout in seconds
 
 system:
-  log_dir: data/logs         # directory for log files
+  log_dir: data/logs         # directory for runtime log files
+  event_dir: data/events     # directory for structured vision event logs
   sample_dir: data/samples   # directory for captured sample images
   log_queue_size: 256        # bounded queue size for async logging
   display_enabled: true      # show live annotated video window

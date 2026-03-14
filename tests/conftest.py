@@ -8,4 +8,5 @@ pytest_plugins = [
     "tests.fixtures.config_fixtures",
     "tests.fixtures.uart_fixtures",
     "tests.fixtures.vision_fixtures",
+    "tests.fixtures.events_fixtures",
 ]
