@@ -40,7 +40,7 @@ pip install -r requirements.txt
 #### 4. run the setup script
 
 ```bash
-./tools/setup.sh
+./tools/setup.sh dev
 ```
 
 #### 5. create a configuration from template
