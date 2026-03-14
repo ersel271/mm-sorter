@@ -20,7 +20,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-_LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s"
+_LOG_FORMAT = "%(asctime)s (%(levelname)-8s) [%(filename)-14s:%(lineno)-3d] - %(message)s"
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # tracks whether setup has already been called
