@@ -1,5 +1,6 @@
 # tests/test_log.py
 
+import re
 import logging
 from pathlib import Path
 
@@ -89,14 +90,18 @@ class TestLogOutput:
         content = list(log_dir.glob("sorter_*.log"))[0].read_text()
         assert "hello from test" in content
 
-    def test_format_contains_module_and_line(self, tmp_cfg):
+    def test_format_contains_file_and_line(self, tmp_cfg):
         setup_logger(tmp_cfg)
         logging.getLogger("mymod").warning("check format")
+
         for h in logging.getLogger().handlers:
             h.flush()
+
         log_dir = Path(tmp_cfg.system["log_dir"])
         content = list(log_dir.glob("sorter_*.log"))[0].read_text()
-        assert "mymod:" in content
+
+        pattern = rf"{re.escape(Path(__file__).name)}\s*:\s*\d+"
+        assert re.search(pattern, content)
         assert "WARNING" in content
 
     def test_debug_reaches_file(self, tmp_cfg):
