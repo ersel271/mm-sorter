@@ -4,6 +4,11 @@ Structured classification event types, serialisation, and async writer.
 
 Provides VisionEvent dataclass, EventWriter for JSONL output,
 and EventQueueWorker for off-thread event processing.
+
+Usage:
+    worker = EventQueueWorker(cfg, metrics)
+    worker.enqueue(event)
+    worker.stop()
 """
 
 import json
@@ -49,9 +54,7 @@ def check_reserved_fields() -> None:
     from dataclasses import fields
     collisions = {f.name for f in fields(VisionEvent)} & _LOGGING_RESERVED
     if collisions:
-        raise ValueError(
-            f"VisionEvent fields collide with logging reserved names: {collisions}"
-        )
+        raise ValueError(f"VisionEvent fields collide with logging reserved names: {collisions}")
 
 def serialise_event(event: VisionEvent) -> str:
     """serialise a VisionEvent to a compact JSON string without trailing newline"""
@@ -108,9 +111,7 @@ class EventQueueWorker:
         self._dropped = 0
         self._dropped_lock = threading.Lock()
         self._stop_event = threading.Event()
-        self._thread = threading.Thread(
-            target=self._run, daemon=True, name="event-worker"
-        )
+        self._thread = threading.Thread(target=self._run, daemon=True, name="event-worker")
         self._thread.start()
 
     def enqueue(self, event: VisionEvent) -> None:
@@ -120,9 +121,7 @@ class EventQueueWorker:
         except queue.Full:
             with self._dropped_lock:
                 self._dropped += 1
-            log.warning(
-                "event queue full, dropped event (total drops: %d)", self._dropped
-            )
+            log.warning("event queue full, dropped event (total drops: %d)", self._dropped)
 
     def stop(self, timeout: float = 5.0) -> None:
         """signal worker to stop, drain remaining events, and close the writer"""

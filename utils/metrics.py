@@ -5,6 +5,11 @@ Running classification metrics tracker and offline evaluation utilities.
 RunningMetrics accumulates live statistics updated by the background event
 worker. Offline helpers derive confusion matrix, precision, recall, and F1
 from labelled evaluation pairs.
+
+Usage:
+    metrics = RunningMetrics()
+    metrics.update(event)
+    snapshot = metrics.snapshot()
 """
 
 import logging
@@ -76,9 +81,7 @@ class RunningMetrics:
             "per_class": dict(self._per_class),
         }
 
-def confusion_matrix(
-    pairs: list[tuple[int, int]], num_classes: int
-) -> list[list[int]]:
+def confusion_matrix(pairs: list[tuple[int, int]], num_classes: int) -> list[list[int]]:
     """
     compute a confusion matrix from (ground_truth, predicted) pairs.
     returns a num_classes x num_classes matrix where matrix[actual][predicted]
@@ -108,9 +111,7 @@ def per_class_metrics(matrix: list[list[int]]) -> list[dict]:
             if (precision + recall) > 0
             else 0.0
         )
-        results.append(
-            {"class_id": c, "precision": precision, "recall": recall, "f1": f1}
-        )
+        results.append({"class_id": c, "precision": precision, "recall": recall, "f1": f1})
     return results
 
 def accuracy(matrix: list[list[int]]) -> float:
