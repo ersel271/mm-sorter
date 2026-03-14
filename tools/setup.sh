@@ -7,7 +7,7 @@
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VENV_DIR="$PROJECT_ROOT/testvenv"
+VENV_DIR="$PROJECT_ROOT/.venv"
 MODE="${1:-prod}"
 
 if [ "$MODE" = "dev" ]; then
