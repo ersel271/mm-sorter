@@ -58,6 +58,8 @@ CAMERA_FPS = 30
 
 CHECKPOINT_FILE = "calibration_checkpoint.txt"
 
+PREVIEW_SCALE = 0.85
+
 def sharpness(frame):
     """laplacian variance of a grayscale frame. higher = sharper."""
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -127,6 +129,7 @@ def main():
         cy, cx = display.shape[0] // 2, display.shape[1] // 2
         cv2.drawMarker(display, (cx, cy), (0, 0, 255), cv2.MARKER_CROSS, 40, 1)
 
+        display = cv2.resize(display, (0, 0), fx=PREVIEW_SCALE, fy=PREVIEW_SCALE)
         cv2.imshow("Focus Calibration", display)
         key = cv2.waitKey(1) & 0xFF
 

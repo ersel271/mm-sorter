@@ -62,6 +62,8 @@ ROI_SIZE = 100
 
 CHECKPOINT_FILE = "calibration_checkpoint.txt"
 
+PREVIEW_SCALE = 0.85
+
 def centre_roi_stats(frame):
     """average BGR of a square patch at the frame centre."""
     h, w = frame.shape[:2]
@@ -154,6 +156,7 @@ def main():
         cv2.putText(display, help_text, (20, display.shape[0] - 20),
                      cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
 
+        display = cv2.resize(display, (0, 0), fx=PREVIEW_SCALE, fy=PREVIEW_SCALE)
         cv2.imshow("White Balance Calibration", display)
         key = cv2.waitKey(1) & 0xFF
 
