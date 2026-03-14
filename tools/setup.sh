@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tools/setup.sh
 # set up the development environment: check for virtualenv,
-# install dependencies, and make utility scripts executable
+# install dependencies, and prepare runtime directories
 # usage: bash tools/setup.sh [dev|prod]
 
 set -e
@@ -37,6 +37,13 @@ echo "installing dependencies ($MODE) ..."
 pip install -r "$REQ_FILE" > /dev/null
 
 chmod +x "$PROJECT_ROOT"/tools/*.sh
-mkdir -p _report
+
+echo "creating runtime directories ..."
+mkdir -p "$PROJECT_ROOT"/data/{logs,events,samples}
+
+if [ "$MODE" = "dev" ]; then
+    echo "creating dev environment specific directories ..."
+    mkdir -p "$PROJECT_ROOT/_report"
+fi
 
 echo "setup complete"
