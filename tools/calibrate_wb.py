@@ -12,8 +12,7 @@ The tool is standalone and does not depend on any project modules.
 Only OpenCV and Numpy are required.
 
 Usage:
-    python tools/calibrate_wb.py
-    python tools/calibrate_wb.py --device 0
+    python tools/calibrate_wb.py [--device DEVICE]
 
 Procedure:
     1. Place a white reference card (plain white paper works)

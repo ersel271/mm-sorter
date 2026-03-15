@@ -11,8 +11,7 @@ The tool is standalone and does not depend on any project modules.
 Only OpenCV is required.
 
 Usage:
-    python tools/calibrate_focus.py
-    python tools/calibrate_focus.py --device 0
+    python tools/calibrate_focus.py [--device DEVICE]
 
 Procedure:
     1. Place a printed reference pattern (text, checkerboard, or ruler)
