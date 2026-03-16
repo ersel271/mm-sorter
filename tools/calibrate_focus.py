@@ -11,8 +11,7 @@ The tool is standalone and does not depend on any project modules.
 Only OpenCV is required.
 
 Usage:
-    python tools/calibrate_focus.py
-    python tools/calibrate_focus.py --device 0
+    python tools/calibrate_focus.py [--device DEVICE]
 
 Procedure:
     1. Place a printed reference pattern (text, checkerboard, or ruler)
@@ -57,6 +56,8 @@ CAMERA_HEIGHT = 1080
 CAMERA_FPS = 30
 
 CHECKPOINT_FILE = "calibration_checkpoint.txt"
+
+PREVIEW_SCALE = 0.85
 
 def sharpness(frame):
     """laplacian variance of a grayscale frame. higher = sharper."""
@@ -127,6 +128,7 @@ def main():
         cy, cx = display.shape[0] // 2, display.shape[1] // 2
         cv2.drawMarker(display, (cx, cy), (0, 0, 255), cv2.MARKER_CROSS, 40, 1)
 
+        display = cv2.resize(display, (0, 0), fx=PREVIEW_SCALE, fy=PREVIEW_SCALE)
         cv2.imshow("Focus Calibration", display)
         key = cv2.waitKey(1) & 0xFF
 

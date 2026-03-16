@@ -12,8 +12,7 @@ The tool is standalone and does not depend on any project modules.
 Only OpenCV and Numpy are required.
 
 Usage:
-    python tools/calibrate_wb.py
-    python tools/calibrate_wb.py --device 0
+    python tools/calibrate_wb.py [--device DEVICE]
 
 Procedure:
     1. Place a white reference card (plain white paper works)
@@ -61,6 +60,8 @@ CAMERA_FPS = 30
 ROI_SIZE = 100
 
 CHECKPOINT_FILE = "calibration_checkpoint.txt"
+
+PREVIEW_SCALE = 0.85
 
 def centre_roi_stats(frame):
     """average BGR of a square patch at the frame centre."""
@@ -154,6 +155,7 @@ def main():
         cv2.putText(display, help_text, (20, display.shape[0] - 20),
                      cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 1)
 
+        display = cv2.resize(display, (0, 0), fx=PREVIEW_SCALE, fy=PREVIEW_SCALE)
         cv2.imshow("White Balance Calibration", display)
         key = cv2.waitKey(1) & 0xFF
 
