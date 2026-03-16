@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from config import Config
+from tests.helpers.config_helpers import write_config
 from src.vision.preprocess import Preprocessor, PreprocessResult
 from tests.helpers.image_helpers import make_frame, draw_circle, draw_saturated_circle
 
@@ -167,6 +168,45 @@ class TestROI:
         assert w < 1920
         assert abs(h - 540) < 10
         assert abs(w - 960) < 10
+
+    def test_roi_enabled_centroid_and_bbox_in_full_frame_coordinates(self, tmp_path):
+        frame_w, frame_h = 1920, 1080
+        roi_fraction = 0.9
+        # deterministic offset from the same formula used in _extract_roi
+        ox = int(frame_w * (1 - roi_fraction) / 2)   # 96
+        oy = int(frame_h * (1 - roi_fraction) / 2)   # 54
+
+        cfg = Config()
+        data = cfg.as_dict()
+        data["preprocess"]["roi_enabled"] = True
+        data["preprocess"]["roi_fraction"] = roi_fraction
+        path = write_config(data, tmp_path)
+        p = Preprocessor(Config(path))
+
+        # object placed well off-centre so ROI-local and full-frame coords diverge clearly
+        centre = (400, 300)
+        roi_local = (centre[0] - ox, centre[1] - oy)  # (304, 246) without fix
+        frame = draw_saturated_circle(make_frame(frame_w, frame_h), centre=centre, radius=60)
+        result = p.process(frame)
+
+        assert result.found is True
+
+        cx, cy = result.centroid
+        # positive: centroid must be near the full-frame position
+        assert abs(cx - centre[0]) < 5, f"centroid x={cx} not near full-frame {centre[0]}"
+        assert abs(cy - centre[1]) < 5, f"centroid y={cy} not near full-frame {centre[1]}"
+        # negative: centroid must NOT be near the ROI-local position (catches regression)
+        assert abs(cx - roi_local[0]) > 50, f"centroid x={cx} looks like ROI-local {roi_local[0]}"
+        assert abs(cy - roi_local[1]) > 50, f"centroid y={cy} looks like ROI-local {roi_local[1]}"
+
+        # bbox origin must also be in full-frame coordinates, not ROI-local
+        radius = 60
+        x, y, w, h = result.bbox
+        assert abs(x - (centre[0] - radius)) < 20, f"bbox x={x} not near global {centre[0] - radius}"
+        assert abs(y - (centre[1] - radius)) < 20, f"bbox y={y} not near global {centre[1] - radius}"
+        # centroid must fall inside the bbox (sanity check)
+        assert x <= cx <= x + w
+        assert y <= cy <= y + h
 
 @pytest.mark.unit
 class TestColourConversions:
