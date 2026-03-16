@@ -4,7 +4,7 @@ import pytest
 import serial
 from unittest.mock import MagicMock
 
-from src.uart import UARTSender
+from src.io.uart import UARTSender
 
 @pytest.fixture
 def mock_port() -> MagicMock:

@@ -3,7 +3,7 @@
 import pytest
 
 from config import Config
-from src.camera import Camera
+from src.io.camera import Camera
 
 @pytest.mark.hw
 class TestCameraHardware:

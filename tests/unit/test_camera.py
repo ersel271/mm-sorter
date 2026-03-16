@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from config import Config
-from src.camera import Camera
+from src.io.camera import Camera
 
 @pytest.mark.unit
 class TestCameraInit:
@@ -27,7 +27,7 @@ class TestCameraOpenMock:
     """verify open() applies config settings via cv2.VideoCapture."""
 
     def test_open_success(self, default_cfg):
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = True
             mock_cap.get.return_value = 0
@@ -39,7 +39,7 @@ class TestCameraOpenMock:
             assert cam.is_open is True
 
     def test_open_failure(self, default_cfg):
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = False
             mock_vc.return_value = mock_cap
@@ -49,7 +49,7 @@ class TestCameraOpenMock:
             assert cam.is_open is False
 
     def test_open_sets_resolution(self, default_cfg):
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = True
             mock_cap.get.return_value = 0
@@ -65,7 +65,7 @@ class TestCameraOpenMock:
 
     def test_open_disables_autofocus_when_config_says_so(self, default_cfg):
         assert default_cfg.camera["autofocus"] is False
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = True
             mock_cap.get.return_value = 0
@@ -84,7 +84,7 @@ class TestCameraReadMock:
     """verify read() returns frames or failure from the underlying capture."""
 
     def test_read_success(self, default_cfg):
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = True
             mock_cap.get.return_value = 0
@@ -100,7 +100,7 @@ class TestCameraReadMock:
             assert frame.shape == (1080, 1920, 3)
 
     def test_read_failure(self, default_cfg):
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = True
             mock_cap.get.return_value = 0
@@ -119,7 +119,7 @@ class TestCameraSetters:
 
     @pytest.fixture
     def open_cam(self, default_cfg):
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = True
             mock_cap.get.return_value = 0
@@ -166,7 +166,7 @@ class TestCameraRelease:
     """verify release() cleans up the capture device."""
 
     def test_release(self, default_cfg):
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = True
             mock_cap.get.return_value = 0
@@ -192,7 +192,7 @@ class TestCameraProperties:
         assert cam.get_properties() == {}
 
     def test_get_properties_returns_dict(self, default_cfg):
-        with patch("src.camera.cv2.VideoCapture") as mock_vc:
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
             mock_cap = MagicMock()
             mock_cap.isOpened.return_value = True
             mock_cap.get.return_value = 0
