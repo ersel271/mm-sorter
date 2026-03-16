@@ -32,6 +32,10 @@ class PreprocessResult:
     """
     output of a single preprocessing pass.
 
+    Coordinate spaces:
+        centroid, bbox: full-frame coordinates (always, regardless of roi_enabled)
+        roi, hsv, gray, mask, contour: ROI-local coordinates / ROI-space arrays
+
     when found is False, contour/centroid/bbox fields are None
     and area is 0. roi, hsv, gray, and mask are always populated.
     """
@@ -75,7 +79,7 @@ class Preprocessor:
         """
         run the full preprocessing pipeline on a BGR frame.
         """
-        roi = self._extract_roi(frame)
+        roi, (ox, oy) = self._extract_roi(frame)
         blurred = cv2.GaussianBlur(roi, (self._blur_k, self._blur_k), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
@@ -92,8 +96,10 @@ class Preprocessor:
                 area=0.0, found=False,
             )
 
-        centroid = self._compute_centroid(contour)
-        bbox = cv2.boundingRect(contour)
+        cx, cy = self._compute_centroid(contour)
+        centroid = (cx + ox, cy + oy)
+        bx, by, bw, bh = cv2.boundingRect(contour)
+        bbox = (bx + ox, by + oy, bw, bh)
 
         if not self._prev_found:
             log.info("object found -- area=%.0f centroid=(%d, %d)", area, *centroid)
@@ -106,18 +112,20 @@ class Preprocessor:
             area=area, found=True,
         )
 
-    def _extract_roi(self, frame: np.ndarray) -> np.ndarray:
+    def _extract_roi(self, frame: np.ndarray) -> tuple[np.ndarray, tuple[int, int]]:
         """
         crop the centre region of the frame if roi is enabled.
+        returns (roi, (x_offset, y_offset)) so callers can translate
+        ROI-local coordinates back to full-frame coordinates.
         """
         if not self._roi_enabled:
-            return frame
+            return frame, (0, 0)
 
         h, w = frame.shape[:2]
         frac = self._roi_fraction
         dw = int(w * (1 - frac) / 2)
         dh = int(h * (1 - frac) / 2)
-        return frame[dh:h - dh, dw:w - dw].copy()
+        return frame[dh:h - dh, dw:w - dw].copy(), (dw, dh)
 
     def _make_mask(self, hsv: np.ndarray) -> np.ndarray:
         """
