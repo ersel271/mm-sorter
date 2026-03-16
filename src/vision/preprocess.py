@@ -32,6 +32,10 @@ class PreprocessResult:
     """
     output of a single preprocessing pass.
 
+    Coordinate spaces:
+        centroid, bbox: full-frame coordinates (always, regardless of roi_enabled)
+        roi, hsv, gray, mask, contour: ROI-local coordinates / ROI-space arrays
+
     when found is False, contour/centroid/bbox fields are None
     and area is 0. roi, hsv, gray, and mask are always populated.
     """
@@ -52,20 +56,13 @@ class Preprocessor:
     """
 
     def __init__(self, config: Config):
-        pre = config.preprocess
-
-        self._roi_enabled: bool = pre.get("roi_enabled", False)
-        self._roi_fraction: float = pre.get("roi_fraction", 0.9)
-        self._blur_k: int = pre["blur_kernel"]
-        self._sat_thresh: int = pre["sat_threshold"]
-        self._morph_k: int = pre["morph_kernel"]
-        self._erode_iter: int = pre.get("morph_erode_iter", 1)
-        self._dilate_iter: int = pre.get("morph_dilate_iter", 2)
-        self._min_area: int = pre["min_area"]
+        self._cfg = config.preprocess
 
         log.info(
             "preprocessor initialised -- blur=%d, sat_thresh=%d, min_area=%d",
-            self._blur_k, self._sat_thresh, self._min_area,
+            self._cfg["blur_kernel"],
+            self._cfg["sat_threshold"],
+            self._cfg["min_area"],
         )
 
         # tracks previous found state for transition logging
@@ -75,14 +72,15 @@ class Preprocessor:
         """
         run the full preprocessing pipeline on a BGR frame.
         """
-        roi = self._extract_roi(frame)
-        blurred = cv2.GaussianBlur(roi, (self._blur_k, self._blur_k), 0)
+        roi, (ox, oy) = self._extract_roi(frame)
+        blur_k = self._cfg["blur_kernel"]
+        blurred = cv2.GaussianBlur(roi, (blur_k, blur_k), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
         mask = self._make_mask(hsv)
         contour, area = self._find_largest_contour(mask)
 
-        if contour is None or area < self._min_area:
+        if contour is None or area < self._cfg["min_area"]:
             if self._prev_found:
                 log.info("object lost")
             self._prev_found = False
@@ -92,8 +90,10 @@ class Preprocessor:
                 area=0.0, found=False,
             )
 
-        centroid = self._compute_centroid(contour)
-        bbox = cv2.boundingRect(contour)
+        cx, cy = self._compute_centroid(contour)
+        centroid = (cx + ox, cy + oy)
+        bx, by, bw, bh = cv2.boundingRect(contour)
+        bbox = (bx + ox, by + oy, bw, bh)
 
         if not self._prev_found:
             log.info("object found -- area=%.0f centroid=(%d, %d)", area, *centroid)
@@ -106,18 +106,20 @@ class Preprocessor:
             area=area, found=True,
         )
 
-    def _extract_roi(self, frame: np.ndarray) -> np.ndarray:
+    def _extract_roi(self, frame: np.ndarray) -> tuple[np.ndarray, tuple[int, int]]:
         """
         crop the centre region of the frame if roi is enabled.
+        returns (roi, (x_offset, y_offset)) so callers can translate
+        ROI-local coordinates back to full-frame coordinates.
         """
-        if not self._roi_enabled:
-            return frame
+        if not self._cfg.get("roi_enabled", False):
+            return frame, (0, 0)
 
         h, w = frame.shape[:2]
-        frac = self._roi_fraction
+        frac = self._cfg.get("roi_fraction", 0.9)
         dw = int(w * (1 - frac) / 2)
         dh = int(h * (1 - frac) / 2)
-        return frame[dh:h - dh, dw:w - dw].copy()
+        return frame[dh:h - dh, dw:w - dw].copy(), (dw, dh)
 
     def _make_mask(self, hsv: np.ndarray) -> np.ndarray:
         """
@@ -125,13 +127,12 @@ class Preprocessor:
         and applying morphological cleanup.
         """
         sat = hsv[:, :, 1]
-        _, mask = cv2.threshold(sat, self._sat_thresh, 255, cv2.THRESH_BINARY)
+        _, mask = cv2.threshold(sat, self._cfg["sat_threshold"], 255, cv2.THRESH_BINARY)
 
-        kernel = cv2.getStructuringElement(
-            cv2.MORPH_ELLIPSE, (self._morph_k, self._morph_k),
-        )
-        mask = cv2.erode(mask, kernel, iterations=self._erode_iter)
-        mask = cv2.dilate(mask, kernel, iterations=self._dilate_iter)
+        morph_k = self._cfg["morph_kernel"]
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (morph_k, morph_k))
+        mask = cv2.erode(mask, kernel, iterations=self._cfg.get("morph_erode_iter", 1))
+        mask = cv2.dilate(mask, kernel, iterations=self._cfg.get("morph_dilate_iter", 2))
 
         return mask
 
