@@ -1,4 +1,4 @@
-# src/camera.py
+# src/io/camera.py
 """
 Camera capture module for the vision pipeline.
 
