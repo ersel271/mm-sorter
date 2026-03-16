@@ -1,4 +1,4 @@
-# src/uart.py
+# src/io/uart.py
 """
 UART serial communication for transmitting classification results.
 

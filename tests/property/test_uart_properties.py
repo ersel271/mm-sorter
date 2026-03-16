@@ -3,7 +3,7 @@
 import pytest
 from hypothesis import given, strategies as st
 
-from src.uart import build_packet
+from src.io.uart import build_packet
 from config.constants import UART_SEPARATOR, UART_TERMINATOR
 
 ascii_key = st.text(
