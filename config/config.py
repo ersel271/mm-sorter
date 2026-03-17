@@ -19,6 +19,8 @@ from typing import Any
 
 import yaml
 
+from config.constants import COLOUR_IDS
+
 log = logging.getLogger(__name__)
 
 # sections that every valid configuration file must include
@@ -166,7 +168,13 @@ class Config:
         if len(colours) == 0:
             raise ConfigError("at least one colour must be defined in 'colours' section")
 
+        _valid = sorted(n for n in COLOUR_IDS if n != "non-m&m")
         for name, cfg in colours.items():
+            if name.lower() not in COLOUR_IDS or name.lower() == "non-m&m":
+                raise ConfigError(
+                    f"colour '{name}' is not a recognised colour — "
+                    f"valid names: {', '.join(_valid)}"
+                )
             if not isinstance(cfg, dict):
                 raise ConfigError(f"colour '{name}' must be a mapping")
 

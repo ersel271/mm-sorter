@@ -312,3 +312,17 @@ class TestValidationColours:
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="min.*>.*max"):
             Config(path)
+
+    def test_unknown_colour_name_raises(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["colours"]["purple"] = data["colours"]["red"]
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="not a recognised colour"):
+            Config(path)
+
+    def test_non_mm_as_colour_name_raises(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["colours"]["non-m&m"] = data["colours"]["red"]
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="not a recognised colour"):
+            Config(path)
