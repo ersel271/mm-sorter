@@ -52,6 +52,7 @@ class Camera:
         self._apply_focus()
         self._apply_exposure()
         self._apply_white_balance()
+        self._apply_power_line_freq()
 
         props = self.get_properties()
         log.info(
@@ -198,3 +199,7 @@ class Camera:
             self._cap.set(cv2.CAP_PROP_AUTO_WB, 0)
             temp = self._cfg.get("wb_temperature", 4600)
             self._cap.set(cv2.CAP_PROP_WB_TEMPERATURE, temp)
+
+    def _apply_power_line_freq(self) -> None:
+        # TODO: CAP_PROP_* has no power line frequency option so we need platform-specific handling
+        pass
