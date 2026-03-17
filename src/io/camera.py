@@ -32,6 +32,8 @@ class Camera:
     def __init__(self, config: Config):
         self._cfg = config.camera
         self._cap: cv2.VideoCapture | None = None
+        
+        log.info("camera initialised -- device=%d", self._cfg["device"])
 
     def open(self) -> bool:
         """

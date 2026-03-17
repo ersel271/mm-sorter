@@ -55,6 +55,8 @@ class UARTSender:
         self.packets_sent: int = 0
         self.packets_dropped: int = 0
         self._warned: bool = False
+        
+        log.info("uart initialised -- port=%s baud=%d", self._cfg["port"], self._cfg["baud"])
 
     def open(self) -> bool:
         """
