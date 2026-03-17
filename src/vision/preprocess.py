@@ -51,8 +51,7 @@ class PreprocessResult:
 
 class Preprocessor:
     """
-    stateless frame preprocessor. all parameters are read from config
-    at construction time.
+    frame preprocessor. all parameters are read from config at construction time.
     """
 
     def __init__(self, config: Config):
