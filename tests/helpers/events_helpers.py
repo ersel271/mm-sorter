@@ -16,7 +16,7 @@ def make_event(**overrides) -> VisionEvent:
         area=1800.0,
         sat_mean=130.0,
         highlight_ratio=0.04,
-        hue_peak_width=18.0,
+        hue_peak_width=18,
         texture_variance=11.0,
         circularity=0.87,
         aspect_ratio=1.10,

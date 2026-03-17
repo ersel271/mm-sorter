@@ -42,7 +42,7 @@ class VisionEvent:
     area: float
     sat_mean: float
     highlight_ratio: float
-    hue_peak_width: float
+    hue_peak_width: int
     texture_variance: float
     circularity: float
     aspect_ratio: float
