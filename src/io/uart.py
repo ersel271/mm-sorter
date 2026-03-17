@@ -17,6 +17,7 @@ from typing import Any
 
 import serial
 
+from config import Config
 from config.constants import UART_SEPARATOR, UART_TERMINATOR
 
 log = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ class UARTSender:
     drops. the pipeline is never blocked. a summary is logged on close().
     """
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         self._cfg = config.uart
         self._port: serial.Serial | None = None
         self._is_open: bool = False
