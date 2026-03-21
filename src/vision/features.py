@@ -142,7 +142,32 @@ class FeatureExtractor:
         return hist
 
     def _compute_hue_peak_width(self, hue_hist: np.ndarray) -> int:
-        pass
+        """
+        width of the dominant hue cluster in histogram bins.
+
+        extends left and right from the peak bin while values remain
+        above hue_peak_ratio * peak_value. uses modulo indexing so
+        wraparound colours like red are measured correctly.
+        """
+        if hue_hist.max() == 0:
+            return 0
+
+        ratio = self._cfg["hue_peak_ratio"]
+        threshold = hue_hist.max() * ratio
+        peak_idx = int(np.argmax(hue_hist))
+        bins = len(hue_hist)
+        # each direction is capped at half the wheel to prevent double-counting
+        max_spread = bins // 2
+
+        left = 1
+        while left <= max_spread and hue_hist[(peak_idx - left) % bins] >= threshold:
+            left += 1
+
+        right = 1
+        while right <= max_spread and hue_hist[(peak_idx + right) % bins] >= threshold:
+            right += 1
+
+        return min(left + right - 1, bins)
 
     def _compute_texture_variance(self, gray: np.ndarray, mask: np.ndarray) -> float:
         pass
