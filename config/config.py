@@ -49,6 +49,8 @@ _REQUIRED_FIELDS: dict[str, dict[str, type | None]] = {
     "features": {
         "hue_bins": int,
         "highlight_value": int,
+        "hue_smooth_sigma": (int, float),
+        "hue_peak_ratio": (int, float),
     },
     "thresholds": {
         "sat_min": (int, float),
