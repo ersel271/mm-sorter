@@ -90,7 +90,16 @@ class FeatureExtractor:
         )
 
     def _compute_sat_mean(self, hsv: np.ndarray, mask: np.ndarray) -> float:
-        pass
+        """
+        mean saturation of object pixels inside the mask.
+
+        sat_mean = mean(S_mask)
+
+        high values indicate strong colour intensity while low values
+        suggest grey or desaturated objects.
+        """
+        sat = hsv[:, :, 1]
+        return float(sat[mask > 0].mean())
 
     def _compute_highlight_ratio(self, hsv: np.ndarray, mask: np.ndarray) -> float:
         pass
