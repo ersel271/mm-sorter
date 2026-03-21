@@ -208,4 +208,17 @@ class FeatureExtractor:
         return float(max(w, h) / min(w, h))
 
     def _compute_solidity(self, contour: np.ndarray) -> float:
-        pass
+        """
+        ratio of contour area to convex hull area.
+
+        solidity = contour_area / convex_hull_area
+
+        values near 1 indicate compact shapes. irregular or concave
+        contours produce lower solidity scores.
+        """
+        area = cv2.contourArea(contour)
+        hull = cv2.convexHull(contour)
+        hull_area = cv2.contourArea(hull)
+        if hull_area == 0:
+            return 0.0
+        return float(area / hull_area)
