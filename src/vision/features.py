@@ -25,6 +25,7 @@ log = logging.getLogger(__name__)
 class Features:
     mask_pixels: int
     sat_mean: float
+    val_mean: float
     highlight_ratio: float
     hue_hist: np.ndarray
     hue_peak_width: int
@@ -63,6 +64,7 @@ class FeatureExtractor:
             raise ValueError("mask contains no foreground pixels")
 
         sat_mean = self._compute_sat_mean(result.hsv, result.mask)
+        val_mean = self._compute_val_mean(result.hsv, result.mask)
         highlight_ratio = self._compute_highlight_ratio(result.hsv, result.mask)
         hue_hist = self._compute_hue_hist(result.hsv, result.mask)
         hue_peak_width = self._compute_hue_peak_width(hue_hist)
@@ -72,14 +74,15 @@ class FeatureExtractor:
         solidity = self._compute_solidity(result.contour)
 
         log.debug(
-            "features -- sat=%.2f highlight=%.3f circ=%.3f ar=%.3f solid=%.3f tex=%.1f peak_w=%d",
-            sat_mean, highlight_ratio, circularity, aspect_ratio, solidity,
+            "features -- sat=%.2f val=%.2f highlight=%.3f circ=%.3f ar=%.3f solid=%.3f tex=%.1f peak_w=%d",
+            sat_mean, val_mean, highlight_ratio, circularity, aspect_ratio, solidity,
             texture_variance, hue_peak_width,
         )
 
         return Features(
             mask_pixels=mask_pixels,
             sat_mean=sat_mean,
+            val_mean=val_mean,
             highlight_ratio=highlight_ratio,
             hue_hist=hue_hist,
             hue_peak_width=hue_peak_width,
@@ -100,6 +103,18 @@ class FeatureExtractor:
         """
         sat = hsv[:, :, 1]
         return float(sat[mask > 0].mean())
+
+    def _compute_val_mean(self, hsv: np.ndarray, mask: np.ndarray) -> float:
+        """
+        mean brightness (V channel) of object pixels inside the mask.
+
+        val_mean = mean(V_mask)
+
+        low values indicate dark objects (e.g. brown M&Ms) while high
+        values indicate bright surfaces or over-exposed regions.
+        """
+        val = hsv[:, :, 2]
+        return float(val[mask > 0].mean())
 
     def _compute_highlight_ratio(self, hsv: np.ndarray, mask: np.ndarray) -> float:
         """
