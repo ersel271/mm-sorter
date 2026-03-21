@@ -170,7 +170,17 @@ class FeatureExtractor:
         return min(left + right - 1, bins)
 
     def _compute_texture_variance(self, gray: np.ndarray, mask: np.ndarray) -> float:
-        pass
+        """
+        laplacian variance of grayscale pixels inside the mask.
+
+        variance = Var(Laplacian(gray)[mask])
+
+        smooth candy surfaces produce low variance while textured
+        objects produce higher values.
+        """
+        assert gray.ndim == 2
+        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+        return float(laplacian[mask > 0].var())
 
     def _compute_circularity(self, contour: np.ndarray) -> float:
         pass
