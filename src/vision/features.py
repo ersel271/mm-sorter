@@ -168,11 +168,12 @@ class FeatureExtractor:
         above hue_peak_ratio * peak_value. uses modulo indexing so
         wraparound colours like red are measured correctly.
         """
-        if hue_hist.max() == 0:
+        peak_val = hue_hist.max()
+        if peak_val == 0:
             return 0
 
         ratio = self._cfg["hue_peak_ratio"]
-        threshold = hue_hist.max() * ratio
+        threshold = peak_val * ratio
         peak_idx = int(np.argmax(hue_hist))
         bins = len(hue_hist)
         # each direction is capped at half the wheel to prevent double-counting
