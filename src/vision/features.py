@@ -198,7 +198,14 @@ class FeatureExtractor:
         return float(4 * np.pi * area / (perimeter ** 2))
 
     def _compute_aspect_ratio(self, contour: np.ndarray) -> float:
-        pass
+        """
+        normalised bounding box aspect ratio: max(w,h) / min(w,h).
+
+        always >= 1.0 regardless of object orientation.
+        values near 1.0 indicate square-like objects (M&Ms ~1.0–1.35).
+        """
+        _, _, w, h = cv2.boundingRect(contour)
+        return float(max(w, h) / min(w, h))
 
     def _compute_solidity(self, contour: np.ndarray) -> float:
         pass
