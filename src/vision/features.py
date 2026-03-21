@@ -130,7 +130,7 @@ class FeatureExtractor:
         if total > 0:
             hist /= total
 
-        sigma = self._cfg.get("hue_smooth_sigma", 3)
+        sigma = self._cfg["hue_smooth_sigma"]
         if sigma > 0:
             # pad = 4*sigma ensures the kernel (half-width ~3*sigma) fits within the padding
             pad = int(sigma * 4)
