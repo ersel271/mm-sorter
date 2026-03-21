@@ -203,8 +203,11 @@ class FeatureExtractor:
 
         always >= 1.0 regardless of object orientation.
         values near 1.0 indicate square-like objects (M&Ms ~1.0–1.35).
+        returns inf for degenerate contours where min(w, h) == 0.
         """
         _, _, w, h = cv2.boundingRect(contour)
+        if min(w, h) == 0:
+            return float("inf")
         return float(max(w, h) / min(w, h))
 
     def _compute_solidity(self, contour: np.ndarray) -> float:
