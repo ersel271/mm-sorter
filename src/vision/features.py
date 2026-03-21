@@ -57,7 +57,8 @@ class FeatureExtractor:
         if not result.found:
             raise ValueError("feature extraction requires result.found == True")
 
-        assert result.contour is not None
+        if result.contour is None:
+            raise ValueError("feature extraction requires a valid contour")
 
         mask_pixels = int(np.count_nonzero(result.mask))
         if mask_pixels == 0:
@@ -196,7 +197,8 @@ class FeatureExtractor:
         smooth candy surfaces produce low variance while textured
         objects produce higher values.
         """
-        assert gray.ndim == 2
+        if gray.ndim != 2:
+            raise ValueError(f"gray must be a 2-D array, got shape {gray.shape}")
         laplacian = cv2.Laplacian(gray, cv2.CV_64F)
         return float(laplacian[mask > 0].var())
 
