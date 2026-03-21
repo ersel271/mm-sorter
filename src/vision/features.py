@@ -140,7 +140,7 @@ class FeatureExtractor:
         useful for colour classification via hue distribution matching.
         """
         bins = self._cfg["hue_bins"]
-        hist = cv2.calcHist([hsv], [0], mask, [bins], [0, 180])
+        hist = cv2.calcHist([hsv], [0], mask.astype(np.uint8, copy=False), [bins], [0, 180])
         hist = hist.flatten().astype(np.float64)
         total = hist.sum()
         if total > 0:
