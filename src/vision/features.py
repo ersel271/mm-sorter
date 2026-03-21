@@ -153,6 +153,9 @@ class FeatureExtractor:
             padded_2d = padded.reshape(1, -1).astype(np.float32)
             smoothed = cv2.GaussianBlur(padded_2d, (0, 0), sigma)
             hist = smoothed.flatten()[pad:pad + bins].astype(np.float64)
+            total = hist.sum()
+            if total > 0:
+                hist /= total
 
         return hist
 
