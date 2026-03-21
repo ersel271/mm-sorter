@@ -116,7 +116,30 @@ class FeatureExtractor:
         return float((masked_val > threshold).sum() / len(masked_val))
 
     def _compute_hue_hist(self, hsv: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        pass
+        """
+        normalised histogram of hue values inside the mask.
+
+        smoothed with a Gaussian kernel of width hue_smooth_sigma.
+        uses circular padding to handle the wraparound at hue=0/180.
+        useful for colour classification via hue distribution matching.
+        """
+        bins = self._cfg["hue_bins"]
+        hist = cv2.calcHist([hsv], [0], mask, [bins], [0, 180])
+        hist = hist.flatten().astype(np.float64)
+        total = hist.sum()
+        if total > 0:
+            hist /= total
+
+        sigma = self._cfg.get("hue_smooth_sigma", 3)
+        if sigma > 0:
+            # pad = 4*sigma ensures the kernel (half-width ~3*sigma) fits within the padding
+            pad = int(sigma * 4)
+            padded = np.concatenate([hist[-pad:], hist, hist[:pad]])
+            padded_2d = padded.reshape(1, -1).astype(np.float32)
+            smoothed = cv2.GaussianBlur(padded_2d, (0, 0), sigma)
+            hist = smoothed.flatten()[pad:pad + bins].astype(np.float64)
+
+        return hist
 
     def _compute_hue_peak_width(self, hue_hist: np.ndarray) -> int:
         pass
