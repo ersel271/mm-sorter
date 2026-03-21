@@ -102,7 +102,18 @@ class FeatureExtractor:
         return float(sat[mask > 0].mean())
 
     def _compute_highlight_ratio(self, hsv: np.ndarray, mask: np.ndarray) -> float:
-        pass
+        """
+        fraction of masked pixels exceeding the brightness threshold.
+
+        highlight_ratio = count(V > highlight_value) / count(mask)
+
+        large ratios indicate specular highlights or highly reflective
+        objects rather than matte candy surfaces.
+        """
+        val = hsv[:, :, 2]
+        threshold = self._cfg["highlight_value"]
+        masked_val = val[mask > 0]
+        return float((masked_val > threshold).sum() / len(masked_val))
 
     def _compute_hue_hist(self, hsv: np.ndarray, mask: np.ndarray) -> np.ndarray:
         pass
