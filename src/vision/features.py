@@ -183,7 +183,19 @@ class FeatureExtractor:
         return float(laplacian[mask > 0].var())
 
     def _compute_circularity(self, contour: np.ndarray) -> float:
-        pass
+        """
+        measures how close the contour shape is to a circle.
+
+        circularity = 4 * pi * area / perimeter^2
+
+        values near 1 indicate round shapes. lower values indicate
+        irregular or elongated objects.
+        """
+        area = cv2.contourArea(contour)
+        perimeter = cv2.arcLength(contour, True)
+        if perimeter == 0:
+            return 0.0
+        return float(4 * np.pi * area / (perimeter ** 2))
 
     def _compute_aspect_ratio(self, contour: np.ndarray) -> float:
         pass
