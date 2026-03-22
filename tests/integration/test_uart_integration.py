@@ -4,7 +4,7 @@ import pytest
 import serial
 
 from config.constants import UART_SEPARATOR
-from src.io.uart import UARTSender
+from src.io import UARTSender
 from tests.helpers.uart_helpers import sample_fields
 
 @pytest.mark.integration

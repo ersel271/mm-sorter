@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from config import Config
-from src.io.camera import Camera
+from src.io import Camera
 
 @pytest.mark.unit
 class TestCameraInit:
