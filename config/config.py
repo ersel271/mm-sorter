@@ -142,7 +142,13 @@ class Config:
 
     @staticmethod
     def _validate(data: dict) -> None:
-        # required sections
+        Config._validate_sections(data)
+        Config._validate_fields(data)
+        Config._validate_colours(data["colours"])
+        Config._validate_ranges(data)
+
+    @staticmethod
+    def _validate_sections(data: dict) -> None:
         for section in _REQUIRED_SECTIONS:
             if section not in data:
                 raise ConfigError(f"missing required section: '{section}'")
@@ -151,7 +157,8 @@ class Config:
                     f"section '{section}' must be a mapping, got {type(data[section]).__name__}"
                 )
 
-        # required fields and type checks per section
+    @staticmethod
+    def _validate_fields(data: dict) -> None:
         for section, fields in _REQUIRED_FIELDS.items():
             for field, expected_type in fields.items():
                 if field not in data[section]:
@@ -164,8 +171,8 @@ class Config:
                             f"got {type(value).__name__} ({value!r})"
                         )
 
-        # colour entries
-        colours = data["colours"]
+    @staticmethod
+    def _validate_colours(colours: dict) -> None:
         if len(colours) == 0:
             raise ConfigError("at least one colour must be defined in 'colours' section")
 
@@ -195,9 +202,8 @@ class Config:
             _validate_pair(cfg["s"], f"colour '{name}'.s")
             _validate_pair(cfg["v"], f"colour '{name}'.v")
 
-        # camera numeric ranges.
-        # resolution and fps are only checked for basic sanity here;
-        # whether the camera actually supports them is verified at open() time
+    @staticmethod
+    def _validate_ranges(data: dict) -> None:
         cam = data["camera"]
         if cam["width"] < 1 or cam["height"] < 1:
             raise ConfigError("camera width and height must be positive")
