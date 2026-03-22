@@ -13,10 +13,11 @@ Usage:
     timeout = cfg.uart.get("timeout", 0.1) # optional field with default
 """
 
+import yaml
+
 import logging
 from pathlib import Path
 
-import yaml
 
 from config.constants import COLOUR_IDS
 
@@ -129,11 +130,11 @@ class Config:
 
         log.debug("loading config from %s", path)
 
-        with open(path, "r") as f:
+        with open(path) as f:
             try:
                 data = yaml.safe_load(f)
             except yaml.YAMLError as e:
-                raise ConfigError(f"YAML parse error in {path}: {e}")
+                raise ConfigError(f"YAML parse error in {path}: {e}") from e
 
         if not isinstance(data, dict):
             raise ConfigError(f"config root must be a mapping, got {type(data).__name__}")
