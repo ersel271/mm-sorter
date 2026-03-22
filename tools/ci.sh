@@ -19,7 +19,7 @@ stage_lint() {
 
 stage_fix() {
     ruff check --fix "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests"
-    ruff format "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests"
+    # ruff format "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests"
 }
 
 stage_typecheck() {
