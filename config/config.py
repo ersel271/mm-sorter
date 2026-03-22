@@ -13,11 +13,10 @@ Usage:
     timeout = cfg.uart.get("timeout", 0.1) # optional field with default
 """
 
-import yaml
-
 import logging
 from pathlib import Path
 
+import yaml
 
 from config.constants import COLOUR_IDS
 
