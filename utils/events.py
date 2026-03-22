@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 
 # derive reserved attribute names directly from a real LogRecord instance
 # so the set stays correct across Python versions without manual maintenance
-reserved = set(logging.LogRecord(None, None, "", 0, "", (), None).__dict__.keys()) | {"message", "asctime",}
+reserved = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__.keys()) | {"message", "asctime",}
 _LOGGING_RESERVED = frozenset(reserved)
 
 @dataclass
