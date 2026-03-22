@@ -144,6 +144,13 @@ class TestValidationMissingSections:
         with pytest.raises(ConfigError, match=f"missing required section.*{section}"):
             Config(path)
 
+    def test_section_not_a_dict_raises(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["camera"] = "not_a_dict"
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="must be a mapping"):
+            Config(path)
+
 @pytest.mark.unit
 class TestValidationMissingFields:
     """verify ConfigError is raised when required fields are missing."""
@@ -230,6 +237,34 @@ class TestValidationRanges:
         data["thresholds"]["circularity_min"] = -0.1
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="circularity_min"):
+            Config(path)
+
+    def test_fps_below_range(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["camera"]["fps"] = 0
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="fps must be positive"):
+            Config(path)
+
+    def test_morph_kernel_below_range(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["preprocess"]["morph_kernel"] = 0
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="morph_kernel must be positive"):
+            Config(path)
+
+    def test_solidity_min_out_of_range(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["thresholds"]["solidity_min"] = 1.5
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="solidity_min"):
+            Config(path)
+
+    def test_colour_confidence_min_out_of_range(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["thresholds"]["colour_confidence_min"] = -0.1
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="colour_confidence_min"):
             Config(path)
 
     def test_baud_too_low(self, valid_data, tmp_path):
@@ -325,4 +360,11 @@ class TestValidationColours:
         data["colours"]["non-m&m"] = data["colours"]["red"]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="not a recognised colour"):
+            Config(path)
+
+    def test_colour_entry_not_a_dict_raises(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["colours"]["red"] = "not_a_dict"
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="must be a mapping"):
             Config(path)
