@@ -130,27 +130,27 @@ class TestCameraSetters:
             yield cam, mock_cap
 
     def test_set_focus(self, open_cam):
-        cam, mock_cap = open_cam
+        cam, _mock_cap = open_cam
         assert cam.set_focus(500) is True
 
     def test_set_autofocus(self, open_cam):
-        cam, mock_cap = open_cam
+        cam, _mock_cap = open_cam
         assert cam.set_autofocus(True) is True
 
     def test_set_exposure_auto(self, open_cam):
-        cam, mock_cap = open_cam
+        cam, _mock_cap = open_cam
         assert cam.set_exposure(3) is True
 
     def test_set_exposure_manual(self, open_cam):
-        cam, mock_cap = open_cam
+        cam, _mock_cap = open_cam
         assert cam.set_exposure(1, value=200) is True
 
     def test_set_white_balance_auto(self, open_cam):
-        cam, mock_cap = open_cam
+        cam, _mock_cap = open_cam
         assert cam.set_white_balance(auto=True) is True
 
     def test_set_white_balance_manual(self, open_cam):
-        cam, mock_cap = open_cam
+        cam, _mock_cap = open_cam
         assert cam.set_white_balance(auto=False, temperature=5000) is True
 
     def test_setters_return_false_when_not_open(self, default_cfg):
