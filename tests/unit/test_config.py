@@ -93,7 +93,7 @@ class TestConfigAccess:
         assert len(c) == 6
 
     def test_colour_sv_format(self, default_cfg):
-        for name, colour in default_cfg.colours.items():
+        for _name, colour in default_cfg.colours.items():
             assert isinstance(colour["s"], list) and len(colour["s"]) == 2
             assert isinstance(colour["v"], list) and len(colour["v"]) == 2
             assert colour["s"][0] <= colour["s"][1]
@@ -176,21 +176,21 @@ class TestValidationTypes:
         data = copy.deepcopy(valid_data)
         data["camera"]["device"] = "two"
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="camera.device"):
+        with pytest.raises(ConfigError, match=r"camera\.device"):
             Config(path)
 
     def test_camera_autofocus_must_be_bool(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         data["camera"]["autofocus"] = "yes"
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="camera.autofocus"):
+        with pytest.raises(ConfigError, match=r"camera\.autofocus"):
             Config(path)
 
     def test_uart_port_must_be_str(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         data["uart"]["port"] = 12345
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="uart.port"):
+        with pytest.raises(ConfigError, match=r"uart\.port"):
             Config(path)
 
 @pytest.mark.unit
@@ -254,42 +254,42 @@ class TestValidationColours:
         data = copy.deepcopy(valid_data)
         del data["colours"]["red"]["h"]
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="red.*h"):
+        with pytest.raises(ConfigError, match=r"red.*h"):
             Config(path)
 
     def test_colour_missing_s(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         del data["colours"]["red"]["s"]
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="red.*s"):
+        with pytest.raises(ConfigError, match=r"red.*s"):
             Config(path)
 
     def test_colour_missing_v(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         del data["colours"]["red"]["v"]
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="red.*v"):
+        with pytest.raises(ConfigError, match=r"red.*v"):
             Config(path)
 
     def test_h_empty_list(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         data["colours"]["red"]["h"] = []
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="h.*non-empty"):
+        with pytest.raises(ConfigError, match=r"h.*non-empty"):
             Config(path)
 
     def test_h_bad_pair(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         data["colours"]["red"]["h"] = [[10, 20, 30]]
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="min, max.*pair"):
+        with pytest.raises(ConfigError, match=r"min, max.*pair"):
             Config(path)
 
     def test_h_min_greater_than_max(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         data["colours"]["red"]["h"] = [[50, 10]]
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="min.*>.*max"):
+        with pytest.raises(ConfigError, match=r"min.*>.*max"):
             Config(path)
 
     def test_h_non_numeric(self, valid_data, tmp_path):
@@ -303,14 +303,14 @@ class TestValidationColours:
         data = copy.deepcopy(valid_data)
         data["colours"]["red"]["s"] = [100]
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="min, max.*pair"):
+        with pytest.raises(ConfigError, match=r"min, max.*pair"):
             Config(path)
 
     def test_v_min_greater_than_max(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         data["colours"]["red"]["v"] = [255, 50]
         path = write_config(data, tmp_path)
-        with pytest.raises(ConfigError, match="min.*>.*max"):
+        with pytest.raises(ConfigError, match=r"min.*>.*max"):
             Config(path)
 
     def test_unknown_colour_name_raises(self, valid_data, tmp_path):
