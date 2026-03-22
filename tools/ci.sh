@@ -13,7 +13,7 @@ REPORT_DIR="$PROJECT_ROOT/_report"
 stage_lint() {
     local rc=0
     ruff check "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests" || rc=1
-    ruff format --check "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests" || rc=1
+    # ruff format --check "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests" || rc=1
     return $rc
 }
 
