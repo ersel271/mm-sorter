@@ -65,6 +65,10 @@ stage_security() {
 
 _run() {
     local name="$1"
+    if ! declare -f "stage_${name}" > /dev/null 2>&1; then
+        echo "unknown stage: '${name}' (valid: lint, typecheck, test, deadcode, complexity, security, fix)" >&2
+        return 1
+    fi
     local log="$REPORT_DIR/${name}.log"
     printf "stage: %-10s ... " "${name}"
     if "stage_${name}" > "$log" 2>&1; then
