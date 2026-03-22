@@ -1,11 +1,10 @@
 # tests/test_camera.py
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
-import numpy as np
 import pytest
+import numpy as np
 
-from config import Config
 from src.io import Camera
 
 @pytest.mark.unit

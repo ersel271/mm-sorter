@@ -2,7 +2,6 @@
 
 import pytest
 
-from config import Config
 from src.io import Camera
 
 @pytest.mark.hw

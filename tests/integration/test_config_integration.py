@@ -2,8 +2,6 @@
 
 import pytest
 
-from config import Config
-
 @pytest.mark.integration
 class TestConfigIntegration:
     """verify the default config.yaml is internally consistent."""

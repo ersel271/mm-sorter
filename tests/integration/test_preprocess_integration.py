@@ -1,11 +1,7 @@
 # tests/integration/test_preprocess_integration.py
 
 import cv2
-import numpy as np
 import pytest
-
-from config import Config
-from src.vision.preprocess import Preprocessor
 
 from tests.helpers.image_helpers import make_frame, draw_saturated_circle
 
