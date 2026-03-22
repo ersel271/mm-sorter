@@ -30,6 +30,7 @@ features:
   hue_bins: 180              # number of bins for the hue histogram
   hue_smooth_sigma: 3        # gaussian smoothing sigma for hue histogram
   highlight_value: 240       # V channel threshold for specular highlight detection
+  hue_peak_ratio: 0.15       # fraction of peak value used to measure dominant hue width
 
 thresholds:
   # stage 1: foreign object rejection

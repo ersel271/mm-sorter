@@ -41,6 +41,7 @@ def valid_data() -> dict:
             "hue_bins": 180,
             "hue_smooth_sigma": 3,
             "highlight_value": 240,
+            "hue_peak_ratio": 0.15,
         },
         "thresholds": {
             "sat_min": 60,
