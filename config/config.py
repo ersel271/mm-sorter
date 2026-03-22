@@ -226,7 +226,7 @@ class Config:
         if uart["baud"] < 9600:
             raise ConfigError("uart.baud must be at least 9600")
 
-def _validate_pair(pair, label: str) -> None:
+def _validate_pair(pair: object, label: str) -> None:
     """
     validate a [min, max] numeric pair.
     """
