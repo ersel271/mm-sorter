@@ -29,7 +29,7 @@ _REQUIRED_SECTIONS = (
 
 # fields within sections that every valid configuration must include.
 # use value None if type checking is unnecessary for a field
-_REQUIRED_FIELDS: dict[str, dict[str, type | None]] = {
+_REQUIRED_FIELDS: dict[str, dict[str, type | tuple[type, ...] | None]] = {
     "camera": {
         "device": int,
         "width": int,
