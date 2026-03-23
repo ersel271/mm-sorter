@@ -1,5 +1,7 @@
 # tests/unit/test_features.py
 
+import dataclasses
+
 import numpy as np
 import pytest
 
@@ -14,20 +16,18 @@ class TestExtractGuards:
     """verify that extract() enforces its input preconditions."""
 
     def test_raises_when_not_found(self, extractor):
-        result = make_feature_result()
-        result.found = False
+        result = dataclasses.replace(make_feature_result(), found=False)
         with pytest.raises(ValueError, match="found"):
             extractor.extract(result)
 
     def test_raises_when_mask_empty(self, extractor):
-        result = make_feature_result()
-        result.mask = np.zeros_like(result.mask)
+        base = make_feature_result()
+        result = dataclasses.replace(base, mask=np.zeros_like(base.mask))
         with pytest.raises(ValueError, match="mask"):
             extractor.extract(result)
 
     def test_raises_when_contour_is_none(self, extractor):
-        result = make_feature_result()
-        result.contour = None
+        result = dataclasses.replace(make_feature_result(), contour=None)
         with pytest.raises(ValueError, match="contour"):
             extractor.extract(result)
 
@@ -165,8 +165,7 @@ class TestTextureVariance:
         assert features.texture_variance >= 0.0
 
     def test_raises_on_multichannel_gray(self, extractor):
-        result = make_feature_result()
-        result.gray = np.zeros((100, 100, 3), dtype=np.uint8)
+        result = dataclasses.replace(make_feature_result(), gray=np.zeros((100, 100, 3), dtype=np.uint8))
         with pytest.raises(ValueError, match="2-D"):
             extractor.extract(result)
 
@@ -183,8 +182,7 @@ class TestCircularity:
         assert 0.0 <= features.circularity <= 1.0
 
     def test_degenerate_single_point_returns_zero(self, extractor):
-        result = make_feature_result()
-        result.contour = np.array([[[50, 50]]], dtype=np.int32)
+        result = dataclasses.replace(make_feature_result(), contour=np.array([[[50, 50]]], dtype=np.int32))
         features = extractor.extract(result)
         assert features.circularity == 0.0
 
@@ -197,19 +195,19 @@ class TestAspectRatio:
         assert 0.85 <= features.aspect_ratio <= 1.15
 
     def test_wide_rectangle_above_one(self, extractor):
-        result = make_feature_result()
         # horizontal rectangle 80x20, aspect ratio ~4
-        result.contour = np.array(
-            [[[10, 40]], [[90, 40]], [[90, 60]], [[10, 60]]], dtype=np.int32
+        result = dataclasses.replace(
+            make_feature_result(),
+            contour=np.array([[[10, 40]], [[90, 40]], [[90, 60]], [[10, 60]]], dtype=np.int32),
         )
         features = extractor.extract(result)
         assert features.aspect_ratio > 1.5
 
     def test_tall_rectangle_normalised(self, extractor):
-        result = make_feature_result()
         # vertical rectangle 20x80 -- normalised ratio = 80/20 = 4.0
-        result.contour = np.array(
-            [[[40, 10]], [[60, 10]], [[60, 90]], [[40, 90]]], dtype=np.int32
+        result = dataclasses.replace(
+            make_feature_result(),
+            contour=np.array([[[40, 10]], [[60, 10]], [[60, 90]], [[40, 90]]], dtype=np.int32),
         )
         features = extractor.extract(result)
         assert features.aspect_ratio > 1.5
@@ -227,8 +225,10 @@ class TestSolidity:
         assert 0.0 <= features.solidity <= 1.0
 
     def test_degenerate_collinear_contour_returns_zero(self, extractor):
-        result = make_feature_result()
         # collinear points: convex hull is a line, hull area = 0
-        result.contour = np.array([[[0, 0]], [[50, 0]], [[100, 0]]], dtype=np.int32)
+        result = dataclasses.replace(
+            make_feature_result(),
+            contour=np.array([[[0, 0]], [[50, 0]], [[100, 0]]], dtype=np.int32),
+        )
         features = extractor.extract(result)
         assert features.solidity == 0.0
