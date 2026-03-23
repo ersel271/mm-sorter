@@ -1,8 +1,7 @@
 # tests/fixtures/config_fixtures.py
 
-import pytest
 import yaml
-from pathlib import Path
+import pytest
 
 from config import Config
 

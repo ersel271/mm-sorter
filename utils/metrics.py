@@ -15,6 +15,8 @@ Usage:
 import logging
 from collections import defaultdict
 
+from utils.events import VisionEvent
+
 log = logging.getLogger(__name__)
 
 class RunningMetrics:
@@ -31,7 +33,7 @@ class RunningMetrics:
         self._confidence_sum = 0.0
         self._frame_ms_sum = 0.0
 
-    def update(self, event) -> None:
+    def update(self, event: VisionEvent) -> None:
         """update counters from a single VisionEvent"""
         self._total += 1
         if event.decision == "ACCEPT":

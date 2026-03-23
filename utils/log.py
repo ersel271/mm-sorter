@@ -19,6 +19,7 @@ import sys
 import logging
 from pathlib import Path
 from datetime import datetime
+from config import Config
 
 _LOG_FORMAT = "%(asctime)s (%(levelname)-8s) [%(filename)-14s:%(lineno)-3d] - %(message)s"
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -26,7 +27,7 @@ _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 # tracks whether setup has already been called
 _initialised = False
 
-def setup_logger(config, level: int = logging.DEBUG) -> logging.Logger:
+def setup_logger(config: Config, level: int = logging.DEBUG) -> logging.Logger:
     """
     configure the root logger with file and stream handlers.
 

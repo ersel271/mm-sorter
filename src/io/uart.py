@@ -125,7 +125,7 @@ class UARTSender:
                 self._port.timeout = prev_timeout
 
             if raw:
-                return raw.decode("ascii", errors="replace").strip()
+                return str(raw.decode("ascii", errors="replace").strip())
             return None
         except (serial.SerialException, OSError) as e:
             log.warning("uart receive failed: %s", e)

@@ -15,7 +15,6 @@ Usage:
 
 import logging
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -30,7 +29,7 @@ _REQUIRED_SECTIONS = (
 
 # fields within sections that every valid configuration must include.
 # use value None if type checking is unnecessary for a field
-_REQUIRED_FIELDS: dict[str, dict[str, type | None]] = {
+_REQUIRED_FIELDS: dict[str, dict[str, type | tuple[type, ...] | None]] = {
     "camera": {
         "device": int,
         "width": int,
@@ -130,11 +129,11 @@ class Config:
 
         log.debug("loading config from %s", path)
 
-        with open(path, "r") as f:
+        with open(path) as f:
             try:
                 data = yaml.safe_load(f)
             except yaml.YAMLError as e:
-                raise ConfigError(f"YAML parse error in {path}: {e}")
+                raise ConfigError(f"YAML parse error in {path}: {e}") from e
 
         if not isinstance(data, dict):
             raise ConfigError(f"config root must be a mapping, got {type(data).__name__}")
@@ -143,7 +142,13 @@ class Config:
 
     @staticmethod
     def _validate(data: dict) -> None:
-        # required sections
+        Config._validate_sections(data)
+        Config._validate_fields(data)
+        Config._validate_colours(data["colours"])
+        Config._validate_ranges(data)
+
+    @staticmethod
+    def _validate_sections(data: dict) -> None:
         for section in _REQUIRED_SECTIONS:
             if section not in data:
                 raise ConfigError(f"missing required section: '{section}'")
@@ -152,7 +157,8 @@ class Config:
                     f"section '{section}' must be a mapping, got {type(data[section]).__name__}"
                 )
 
-        # required fields and type checks per section
+    @staticmethod
+    def _validate_fields(data: dict) -> None:
         for section, fields in _REQUIRED_FIELDS.items():
             for field, expected_type in fields.items():
                 if field not in data[section]:
@@ -165,8 +171,8 @@ class Config:
                             f"got {type(value).__name__} ({value!r})"
                         )
 
-        # colour entries
-        colours = data["colours"]
+    @staticmethod
+    def _validate_colours(colours: dict) -> None:
         if len(colours) == 0:
             raise ConfigError("at least one colour must be defined in 'colours' section")
 
@@ -196,9 +202,8 @@ class Config:
             _validate_pair(cfg["s"], f"colour '{name}'.s")
             _validate_pair(cfg["v"], f"colour '{name}'.v")
 
-        # camera numeric ranges.
-        # resolution and fps are only checked for basic sanity here;
-        # whether the camera actually supports them is verified at open() time
+    @staticmethod
+    def _validate_ranges(data: dict) -> None:
         cam = data["camera"]
         if cam["width"] < 1 or cam["height"] < 1:
             raise ConfigError("camera width and height must be positive")
@@ -227,7 +232,7 @@ class Config:
         if uart["baud"] < 9600:
             raise ConfigError("uart.baud must be at least 9600")
 
-def _validate_pair(pair, label: str) -> None:
+def _validate_pair(pair: object, label: str) -> None:
     """
     validate a [min, max] numeric pair.
     """

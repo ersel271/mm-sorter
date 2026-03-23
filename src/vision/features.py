@@ -140,8 +140,8 @@ class FeatureExtractor:
         useful for colour classification via hue distribution matching.
         """
         bins = self._cfg["hue_bins"]
-        hist = cv2.calcHist([hsv], [0], mask.astype(np.uint8, copy=False), [bins], [0, 180])
-        hist = hist.flatten().astype(np.float64)
+        hist = cv2.calcHist([hsv], [0], mask.astype(np.uint8, copy=False), [bins], [0, 180])  # type: ignore[list-item, arg-type]
+        hist = hist.flatten().astype(np.float64)  # type: ignore[assignment]
         total = hist.sum()
         if total > 0:
             hist /= total
@@ -152,8 +152,8 @@ class FeatureExtractor:
             pad = int(sigma * 4)
             padded = np.concatenate([hist[-pad:], hist, hist[:pad]])
             padded_2d = padded.reshape(1, -1).astype(np.float32)
-            smoothed = cv2.GaussianBlur(padded_2d, (0, 0), sigma)
-            hist = smoothed.flatten()[pad:pad + bins].astype(np.float64)
+            smoothed = cv2.GaussianBlur(padded_2d, (0, 0), sigma)  # type: ignore[type-var]
+            hist = smoothed.flatten()[pad:pad + bins].astype(np.float64)  # type: ignore[assignment]
             total = hist.sum()
             if total > 0:
                 hist /= total

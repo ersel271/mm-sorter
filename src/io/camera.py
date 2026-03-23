@@ -40,8 +40,8 @@ class Camera:
         open the camera device and apply all settings from config.
         returns True if the camera is ready to capture.
         """
-        device = self._cfg["device"]
-        self._cap = cv2.VideoCapture(device, cv2.CAP_V4L2)
+        device = int(self._cfg["device"])
+        self._cap = cv2.VideoCapture(device)  # type: ignore[call-arg]
 
         if not self._cap.isOpened():
             log.error("failed to open camera device %d", device)
@@ -86,7 +86,7 @@ class Camera:
             return False
 
         self._cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-        ok = self._cap.set(cv2.CAP_PROP_FOCUS, value)
+        ok = bool(self._cap.set(cv2.CAP_PROP_FOCUS, value))
         if ok:
             log.info("focus set to %d", value)
         else:
@@ -101,7 +101,7 @@ class Camera:
             return False
 
         val = 1 if enabled else 0
-        ok = self._cap.set(cv2.CAP_PROP_AUTOFOCUS, val)
+        ok = bool(self._cap.set(cv2.CAP_PROP_AUTOFOCUS, val))
         log.info("autofocus %s", "enabled" if enabled else "disabled")
         return ok
 
@@ -113,7 +113,7 @@ class Camera:
         if self._cap is None:
             return False
 
-        ok = self._cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, mode)
+        ok = bool(self._cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, mode))
         if mode == 1 and value is not None:
             self._cap.set(cv2.CAP_PROP_EXPOSURE, value)
         log.info("exposure mode=%d value=%s", mode, value)
@@ -172,6 +172,8 @@ class Camera:
         return self._cap is not None and self._cap.isOpened()
 
     def _apply_format(self) -> None:
+        if self._cap is None:
+            raise RuntimeError("camera is not open")
         fourcc = cv2.VideoWriter_fourcc(*self._cfg["format"])
         self._cap.set(cv2.CAP_PROP_FOURCC, fourcc)
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self._cfg["width"])
@@ -179,6 +181,8 @@ class Camera:
         self._cap.set(cv2.CAP_PROP_FPS, self._cfg["fps"])
 
     def _apply_focus(self) -> None:
+        if self._cap is None:
+            raise RuntimeError("camera is not open")
         if self._cfg["autofocus"]:
             self._cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
         else:
@@ -186,6 +190,8 @@ class Camera:
             self._cap.set(cv2.CAP_PROP_FOCUS, self._cfg["focus"])
 
     def _apply_exposure(self) -> None:
+        if self._cap is None:
+            raise RuntimeError("camera is not open")
         mode = self._cfg.get("auto_exposure", 3)
         self._cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, mode)
         if mode == 1:
@@ -193,6 +199,8 @@ class Camera:
             self._cap.set(cv2.CAP_PROP_EXPOSURE, exposure)
 
     def _apply_white_balance(self) -> None:
+        if self._cap is None:
+            raise RuntimeError("camera is not open")
         if self._cfg.get("auto_wb", True):
             self._cap.set(cv2.CAP_PROP_AUTO_WB, 1)
         else:

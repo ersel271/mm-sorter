@@ -11,6 +11,8 @@ Usage:
     worker.stop()
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import queue
@@ -18,12 +20,18 @@ import threading
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+from config import Config
+
+if TYPE_CHECKING:
+    from utils.metrics import RunningMetrics
 
 log = logging.getLogger(__name__)
 
 # derive reserved attribute names directly from a real LogRecord instance
 # so the set stays correct across Python versions without manual maintenance
-reserved = set(logging.LogRecord(None, None, "", 0, "", (), None).__dict__.keys()) | {"message", "asctime",}
+reserved = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__.keys()) | {"message", "asctime",}
 _LOGGING_RESERVED = frozenset(reserved)
 
 @dataclass
@@ -103,7 +111,7 @@ class EventQueueWorker:
     stop() is safe to call even when the queue is full.
     """
 
-    def __init__(self, config, metrics=None):
+    def __init__(self, config: Config, metrics: RunningMetrics | None = None):
         self._cfg = config.system
         self._writer = EventWriter(self._cfg["event_dir"])
         self._queue: queue.Queue = queue.Queue(maxsize=self._cfg["log_queue_size"])

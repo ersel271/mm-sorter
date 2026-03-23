@@ -3,9 +3,8 @@
 import pytest
 import serial
 
-from config import Config
+from src.io import UARTSender, build_packet
 from config.constants import UART_SEPARATOR, UART_TERMINATOR
-from src.io.uart import UARTSender, build_packet
 from tests.helpers.uart_helpers import sample_fields
 
 @pytest.fixture

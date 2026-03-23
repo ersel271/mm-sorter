@@ -1,13 +1,12 @@
 # tests/test_preprocess.py
 
-import cv2
 import numpy as np
 import pytest
 
 from config import Config
 from tests.helpers.config_helpers import write_config
-from src.vision.preprocess import Preprocessor, PreprocessResult
-from tests.helpers.image_helpers import make_frame, draw_circle, draw_saturated_circle
+from src.vision.preprocess import Preprocessor
+from tests.helpers.image_helpers import make_frame, draw_saturated_circle
 
 @pytest.mark.smoke
 @pytest.mark.unit

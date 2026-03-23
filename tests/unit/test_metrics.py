@@ -2,7 +2,7 @@
 
 import pytest
 
-from utils.metrics import RunningMetrics, confusion_matrix, per_class_metrics, accuracy
+from utils.metrics import confusion_matrix, per_class_metrics, accuracy
 from tests.helpers.events_helpers import make_event
 
 @pytest.mark.unit

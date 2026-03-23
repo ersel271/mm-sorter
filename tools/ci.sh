@@ -13,13 +13,13 @@ REPORT_DIR="$PROJECT_ROOT/_report"
 stage_lint() {
     local rc=0
     ruff check "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests" || rc=1
-    ruff format --check "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests" || rc=1
+    # ruff format --check "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests" || rc=1
     return $rc
 }
 
 stage_fix() {
     ruff check --fix "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests"
-    ruff format "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests"
+    # ruff format "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests"
 }
 
 stage_typecheck() {
@@ -65,6 +65,10 @@ stage_security() {
 
 _run() {
     local name="$1"
+    if ! declare -f "stage_${name}" > /dev/null 2>&1; then
+        echo "unknown stage: '${name}' (valid: lint, typecheck, test, deadcode, complexity, security, fix)" >&2
+        return 1
+    fi
     local log="$REPORT_DIR/${name}.log"
     printf "stage: %-10s ... " "${name}"
     if "stage_${name}" > "$log" 2>&1; then

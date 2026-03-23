@@ -6,7 +6,7 @@ import serial
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant
 
 from config import Config
-from src.io.uart import UARTSender
+from src.io import UARTSender
 
 class UARTSenderStateMachine(RuleBasedStateMachine):
     """state machine model for UARTSender where hypothesis explores random connect, send and disconnect sequences"""

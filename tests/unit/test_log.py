@@ -87,7 +87,7 @@ class TestLogOutput:
         for h in logging.getLogger().handlers:
             h.flush()
         log_dir = Path(tmp_cfg.system["log_dir"])
-        content = list(log_dir.glob("sorter_*.log"))[0].read_text()
+        content = next(iter(log_dir.glob("sorter_*.log"))).read_text()
         assert "hello from test" in content
 
     def test_format_contains_file_and_line(self, tmp_cfg):
@@ -98,7 +98,7 @@ class TestLogOutput:
             h.flush()
 
         log_dir = Path(tmp_cfg.system["log_dir"])
-        content = list(log_dir.glob("sorter_*.log"))[0].read_text()
+        content = next(iter(log_dir.glob("sorter_*.log"))).read_text()
 
         pattern = rf"{re.escape(Path(__file__).name)}\s*:\s*\d+"
         assert re.search(pattern, content)
@@ -110,5 +110,5 @@ class TestLogOutput:
         for h in logging.getLogger().handlers:
             h.flush()
         log_dir = Path(tmp_cfg.system["log_dir"])
-        content = list(log_dir.glob("sorter_*.log"))[0].read_text()
+        content = next(iter(log_dir.glob("sorter_*.log"))).read_text()
         assert "debug msg" in content

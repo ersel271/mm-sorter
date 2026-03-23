@@ -1,11 +1,7 @@
 # tests/integration/test_preprocess_integration.py
 
 import cv2
-import numpy as np
 import pytest
-
-from config import Config
-from src.vision.preprocess import Preprocessor
 
 from tests.helpers.image_helpers import make_frame, draw_saturated_circle
 
@@ -17,7 +13,7 @@ class TestPreprocessIntegration:
         frame = make_frame()
         radii = [20, 40, 80, 30]
         centres = [(200, 200), (600, 400), (960, 540), (1500, 800)]
-        for c, r in zip(centres, radii):
+        for c, r in zip(centres, radii, strict=False):
             frame = draw_saturated_circle(frame, centre=c, radius=r)
         result = prep.process(frame)
         assert result.found is True
