@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from src.vision.features import Features
-from tests.helpers.features_helpers import make_feature_result
+from tests.helpers.features_helpers import make_preprocess_result
 from tests.helpers.image_helpers import draw_saturated_circle, make_frame
 
 @pytest.mark.integration
@@ -37,8 +37,8 @@ class TestFeaturesIntegration:
         assert len(features.hue_hist) == 180
 
     def test_different_hues_produce_different_hist_peaks(self, extractor):
-        f_green = extractor.extract(make_feature_result(hue=60))
-        f_blue = extractor.extract(make_feature_result(hue=120))
+        f_green = extractor.extract(make_preprocess_result(hue=60))
+        f_blue = extractor.extract(make_preprocess_result(hue=120))
         peak_green = int(np.argmax(f_green.hue_hist))
         peak_blue = int(np.argmax(f_blue.hue_hist))
         # green and blue peaks must be clearly separated
@@ -51,16 +51,16 @@ class TestFeaturesIntegration:
         assert abs(features.hue_hist.sum() - 1.0) < 0.01
 
     def test_sat_mean_reflects_object_colour(self, extractor):
-        low_sat = extractor.extract(make_feature_result(sat=50))
-        high_sat = extractor.extract(make_feature_result(sat=220))
+        low_sat = extractor.extract(make_preprocess_result(sat=50))
+        high_sat = extractor.extract(make_preprocess_result(sat=220))
         assert high_sat.sat_mean > low_sat.sat_mean
 
     def test_highlight_ratio_increases_with_brightness(self, extractor):
-        dark = extractor.extract(make_feature_result(val=150))
-        bright = extractor.extract(make_feature_result(val=250))
+        dark = extractor.extract(make_preprocess_result(val=150))
+        bright = extractor.extract(make_preprocess_result(val=250))
         assert bright.highlight_ratio > dark.highlight_ratio
 
     def test_val_mean_reflects_object_brightness(self, extractor):
-        dark = extractor.extract(make_feature_result(val=50))
-        bright = extractor.extract(make_feature_result(val=210))
+        dark = extractor.extract(make_preprocess_result(val=50))
+        bright = extractor.extract(make_preprocess_result(val=210))
         assert bright.val_mean > dark.val_mean

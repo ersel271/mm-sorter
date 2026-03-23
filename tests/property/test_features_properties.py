@@ -6,7 +6,7 @@ from hypothesis import given, settings, strategies as st
 
 from config import Config
 from src.vision.features import FeatureExtractor
-from tests.helpers.features_helpers import make_feature_result
+from tests.helpers.features_helpers import make_preprocess_result
 
 # sat_mean is bounded by the uint8 saturation channel range [0, 255]
 @given(
@@ -17,7 +17,7 @@ from tests.helpers.features_helpers import make_feature_result
 @pytest.mark.property
 def test_sat_mean_in_valid_range(hue, sat, val):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val))
     assert 0.0 <= features.sat_mean <= 255.0
 
 # val_mean is bounded by the uint8 value channel range [0, 255]
@@ -29,7 +29,7 @@ def test_sat_mean_in_valid_range(hue, sat, val):
 @pytest.mark.property
 def test_val_mean_in_valid_range(hue, sat, val):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val))
     assert 0.0 <= features.val_mean <= 255.0
 
 # highlight_ratio is always a fraction between 0 and 1
@@ -41,7 +41,7 @@ def test_val_mean_in_valid_range(hue, sat, val):
 @pytest.mark.property
 def test_highlight_ratio_in_valid_range(hue, sat, val):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val))
     assert 0.0 <= features.highlight_ratio <= 1.0
 
 # normalised hue histogram must sum to approximately one
@@ -53,7 +53,7 @@ def test_highlight_ratio_in_valid_range(hue, sat, val):
 @pytest.mark.property
 def test_hue_hist_sum_near_one(hue, sat, val):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val))
     assert abs(features.hue_hist.sum() - 1.0) < 0.02
 
 # all hue histogram bins must be non-negative
@@ -65,7 +65,7 @@ def test_hue_hist_sum_near_one(hue, sat, val):
 @pytest.mark.property
 def test_hue_hist_all_nonnegative(hue, sat, val):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val))
     assert np.all(features.hue_hist >= 0)
 
 # circularity of a discrete circle contour must lie in [0, 1]
@@ -78,7 +78,7 @@ def test_hue_hist_all_nonnegative(hue, sat, val):
 @pytest.mark.property
 def test_circularity_in_valid_range(hue, sat, val, radius):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val, radius=radius))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val, radius=radius))
     assert 0.0 <= features.circularity <= 1.0
 
 # solidity of a circle is always in [0, 1]
@@ -91,7 +91,7 @@ def test_circularity_in_valid_range(hue, sat, val, radius):
 @pytest.mark.property
 def test_solidity_in_valid_range(hue, sat, val, radius):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val, radius=radius))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val, radius=radius))
     assert 0.0 <= features.solidity <= 1.0
 
 # normalised aspect ratio must always be >= 1.0 for any contour orientation
@@ -104,7 +104,7 @@ def test_solidity_in_valid_range(hue, sat, val, radius):
 @pytest.mark.property
 def test_aspect_ratio_never_below_one(hue, sat, val, radius):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val, radius=radius))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val, radius=radius))
     assert features.aspect_ratio >= 1.0
 
 # Laplacian variance is always non-negative
@@ -117,7 +117,7 @@ def test_aspect_ratio_never_below_one(hue, sat, val, radius):
 @pytest.mark.property
 def test_texture_variance_nonnegative(hue, sat, val, radius):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val, radius=radius))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val, radius=radius))
     assert features.texture_variance >= 0.0
 
 # hue_peak_width must fall within valid histogram bounds for any input
@@ -130,7 +130,7 @@ def test_texture_variance_nonnegative(hue, sat, val, radius):
 @pytest.mark.property
 def test_hue_peak_width_in_bounds(hue, sat, val, radius):
     extractor = FeatureExtractor(Config())
-    features = extractor.extract(make_feature_result(hue=hue, sat=sat, val=val, radius=radius))
+    features = extractor.extract(make_preprocess_result(hue=hue, sat=sat, val=val, radius=radius))
     assert 1 <= features.hue_peak_width <= 180
 
 # hue_peak_width for a boundary hue must match a mid-range hue within tolerance
@@ -139,6 +139,6 @@ def test_hue_peak_width_in_bounds(hue, sat, val, radius):
 @pytest.mark.property
 def test_hue_peak_width_consistent_at_boundary(radius):
     extractor = FeatureExtractor(Config())
-    f_boundary = extractor.extract(make_feature_result(hue=0, radius=radius))
-    f_midrange = extractor.extract(make_feature_result(hue=90, radius=radius))
+    f_boundary = extractor.extract(make_preprocess_result(hue=0, radius=radius))
+    f_midrange = extractor.extract(make_preprocess_result(hue=90, radius=radius))
     assert abs(f_boundary.hue_peak_width - f_midrange.hue_peak_width) <= 5

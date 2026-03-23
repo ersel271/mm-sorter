@@ -3,9 +3,9 @@
 import cv2
 import numpy as np
 
-from src.vision.preprocess import PreprocessResult
+from src.vision import Features, PreprocessResult
 
-def make_feature_result(hue=10, sat=200, val=180, radius=30, size=100) -> PreprocessResult:
+def make_preprocess_result(hue=10, sat=200, val=180, radius=30, size=100) -> PreprocessResult:
     """build a synthetic PreprocessResult with a uniform-colour circle."""
     h, w = size, size
     cx, cy = w // 2, h // 2
