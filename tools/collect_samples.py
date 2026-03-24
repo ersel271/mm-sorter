@@ -232,7 +232,7 @@ def save_sample(
 
     filename = f"{label}_{ts_str}{IMAGE_EXT}"
     abs_path = os.path.join(output_dir, label, filename)
-    rel_path = os.path.join(label, filename)
+    rel_path = f"{label}/{filename}"
 
     ok = cv2.imwrite(abs_path, frame)
     if not ok:

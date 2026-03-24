@@ -85,7 +85,7 @@ def main():
     parser.add_argument("--device", type=int, default=2, help="camera device index")
     args = parser.parse_args()
 
-    cap = cv2.VideoCapture(args.device, cv2.CAP_V4L2)
+    cap = cv2.VideoCapture(args.device)
     if not cap.isOpened():
         print(f"error: cannot open camera device {args.device}")
         return 1
