@@ -56,7 +56,7 @@ class Classifier:
 
         for rule in self._rules:
             d = rule.apply(f)
-            if d.label is not None:
+            if d is not None:
                 decisions.append(d)
                 log.debug(
                     "rule fired: %s  label=%s  conf=%.3f",

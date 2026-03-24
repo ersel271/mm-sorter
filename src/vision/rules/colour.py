@@ -9,7 +9,7 @@ class ColourClassificationRule(Rule):
     name = "colour_match"
     priority = 30
 
-    def apply(self, f: Features) -> Decision:
+    def apply(self, f: Features) -> Decision | None:
         min_conf = self._cfg.thresholds["colour_confidence_min"]
         epsilon = self._cfg.thresholds["colour_ambiguity_epsilon"]
 
@@ -41,7 +41,7 @@ class ColourClassificationRule(Rule):
                 second_conf = conf
 
         if best_label is None or best_conf < min_conf:
-            return Decision(None, 0.0, self.name, self.priority)
+            return None
 
         # ambiguity: margin between top two candidates is too small to trust
         if best_conf - second_conf < epsilon:

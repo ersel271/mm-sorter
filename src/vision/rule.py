@@ -11,7 +11,7 @@ Usage:
     class MyRule(Rule):
         name = "my_rule"
         priority = 10
-        def apply(self, f: Features) -> Decision: ...
+        def apply(self, f: Features) -> Decision | None: ...
 """
 
 import logging
@@ -32,12 +32,11 @@ class Decision:
     """
     immutable result produced by a single rule evaluation.
 
-    label=None means the rule did not fire and this decision is filtered out
-    before selection. label=ColourID.NON_MM means the rule fired and the object
-    should be rejected.
+    label=ColourID.NON_MM means the rule fired and the object should be
+    rejected. a rule that does not fire returns None instead of a Decision.
     """
 
-    label: ColourID | None
+    label: ColourID
     confidence: float
     rule: str
     priority: int
@@ -54,12 +53,12 @@ class Rule(ABC):
         self._cfg = cfg
 
     @abstractmethod
-    def apply(self, f: Features) -> Decision:
+    def apply(self, f: Features) -> Decision | None:
         """
         evaluate this rule against the given features.
 
         must never raise (unless a fatal, unrecoverable error occurs).
-        returns Decision(label=None, ...) when the rule does not fire.
+        returns None when the rule does not fire.
         deterministic: same Features always produces the same Decision.
         """
         ...
