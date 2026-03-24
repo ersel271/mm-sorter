@@ -3,8 +3,7 @@
 import pytest
 
 from config import Config
-from src.vision.preprocess import Preprocessor
-from src.vision.features import FeatureExtractor
+from src.vision import Classifier, FeatureExtractor, Preprocessor
 
 @pytest.fixture
 def prep() -> Preprocessor:
@@ -13,3 +12,7 @@ def prep() -> Preprocessor:
 @pytest.fixture
 def extractor() -> FeatureExtractor:
     return FeatureExtractor(Config())
+
+@pytest.fixture
+def classifier() -> Classifier:
+    return Classifier(Config())
