@@ -35,3 +35,34 @@ def make_preprocess_result(hue=10, sat=200, val=180, radius=30, size=100) -> Pre
         area=float(cv2.contourArea(contour)),
         found=True,
     )
+
+def make_features(
+    mask_pixels: int = 2827,
+    sat_mean: float = 150.0,
+    val_mean: float = 150.0,
+    highlight_ratio: float = 0.0,
+    hue_hist: np.ndarray | None = None,
+    hue_peak_width: int = 20,
+    texture_variance: float = 100.0,
+    circularity: float = 0.90,
+    aspect_ratio: float = 1.0,
+    solidity: float = 0.95,
+) -> Features:
+    """build a Features object with all-passing defaults; override specific fields to trigger rules."""
+    if hue_hist is None:
+        # neutral green-ish hue, away from red/orange ranges; will be replaced in colour tests
+        h = np.zeros(180)
+        h[45:56] = 1.0 / 11
+        hue_hist = h
+    return Features(
+        mask_pixels=mask_pixels,
+        sat_mean=sat_mean,
+        val_mean=val_mean,
+        highlight_ratio=highlight_ratio,
+        hue_hist=hue_hist,
+        hue_peak_width=hue_peak_width,
+        texture_variance=texture_variance,
+        circularity=circularity,
+        aspect_ratio=aspect_ratio,
+        solidity=solidity,
+    )
