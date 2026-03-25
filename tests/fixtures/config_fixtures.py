@@ -51,6 +51,7 @@ def valid_data() -> dict:
             "aspect_ratio_max": 1.35,
             "solidity_min": 0.90,
             "colour_confidence_min": 0.15,
+            "colour_ambiguity_epsilon": 0.10,
         },
         "colours": {
             "red": {

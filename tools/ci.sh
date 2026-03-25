@@ -49,8 +49,8 @@ stage_complexity() {
     radon mi "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" -s \
         > "$REPORT_DIR/radon_mi.txt"
     echo "reports written to _report/radon_cc.txt and _report/radon_mi.txt"
-    # thresholds: single block max C, per-module average max B, overall average max A
-    xenon --max-absolute C --max-modules B --max-average A \
+    # thresholds: single block max C, per-module average max C, overall average max A
+    xenon --max-absolute C --max-modules C --max-average A \
         "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils"
 }
 

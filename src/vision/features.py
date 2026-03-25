@@ -21,8 +21,13 @@ from src.vision.preprocess import PreprocessResult
 
 log = logging.getLogger(__name__)
 
-@dataclass
+@dataclass(frozen=True)
 class Features:
+    """
+    immutable feature vector computed from a single PreprocessResult.
+    consumed by classifier rules and never modified after construction.
+    """
+
     mask_pixels: int
     sat_mean: float
     val_mean: float

@@ -45,7 +45,8 @@ thresholds:
   solidity_min: 0.90         # minimum solidity (0.0--1.0), convex shape = 1.0
 
   # stage 3: colour matching
-  colour_confidence_min: 0.15  # minimum hue overlap fraction to accept a colour
+  colour_confidence_min: 0.15     # minimum hue overlap fraction to accept a colour
+  colour_ambiguity_epsilon: 0.10  # minimum confidence gap between top two colour candidates
 
 colours:
   # each colour defines h (hue ranges), s (saturation range), v (value range)

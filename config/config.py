@@ -60,6 +60,7 @@ _REQUIRED_FIELDS: dict[str, dict[str, type | tuple[type, ...] | None]] = {
         "aspect_ratio_max": (int, float),
         "solidity_min": (int, float),
         "colour_confidence_min": (int, float),
+        "colour_ambiguity_epsilon": (int, float),
     },
     "colours": {},  # validated separately due to dynamic colour names
     "uart": {
@@ -227,6 +228,8 @@ class Config:
             raise ConfigError("thresholds.solidity_min must be in range 0.0--1.0")
         if not (0.0 <= thresh["colour_confidence_min"] <= 1.0):
             raise ConfigError("thresholds.colour_confidence_min must be in range 0.0--1.0")
+        if not (0.0 <= thresh["colour_ambiguity_epsilon"] <= 1.0):
+            raise ConfigError("thresholds.colour_ambiguity_epsilon must be in range 0.0--1.0")
 
         uart = data["uart"]
         if uart["baud"] < 9600:

@@ -27,7 +27,7 @@ from config import Config
 
 log = logging.getLogger(__name__)
 
-@dataclass
+@dataclass(frozen=True)
 class PreprocessResult:
     """
     output of a single preprocessing pass.
