@@ -1,0 +1,253 @@
+# src/ui/overlay.py
+"""
+Live OpenCV overlay renderer for the M&M sorting pipeline.
+
+Draws detection, classification, and telemetry annotations onto each
+frame. render() returns an annotated ndarray; show() is isolated so
+CI can run headlessly without a display.
+
+Usage:
+    with Overlay(cfg) as ov:
+        frame_out = ov.render(frame, result, features, decision, metrics)
+        if frame_out is not None:
+            key = ov.show(frame_out)
+"""
+
+import collections
+import logging
+import time
+
+import cv2
+import numpy as np
+
+from config import Config
+from config.constants import ColourID, COLOUR_NAMES
+from src.vision.features import Features
+from src.vision.preprocess import PreprocessResult
+from src.vision.rule import Decision
+from utils.metrics import RunningMetrics
+
+log = logging.getLogger(__name__)
+
+_FPS_WINDOW_LEN: int = 30
+_HISTORY_LEN: int = 10
+
+# BGR colour constants, tuned for dark backgrounds
+_CONTOUR_COLOUR:  tuple[int, int, int] = (  0, 230,  80)
+_BBOX_COLOUR:     tuple[int, int, int] = (  0, 190, 210)
+_CENTROID_COLOUR: tuple[int, int, int] = ( 60,  60, 240)
+_TEXT_COLOUR:     tuple[int, int, int] = (190, 200, 200)
+_DIM_COLOUR:      tuple[int, int, int] = (110, 110, 110)
+_UART_OK_COLOUR:  tuple[int, int, int] = (  0, 200,  80)
+_UART_ERR_COLOUR: tuple[int, int, int] = ( 60,  60, 200)
+
+_LABEL_COLOURS: dict[ColourID, tuple[int, int, int]] = {
+    ColourID.NON_MM: (110, 110, 110),
+    ColourID.RED:    ( 40,  50, 220),
+    ColourID.GREEN:  ( 10, 200,  60),
+    ColourID.BLUE:   (220, 100,  10),
+    ColourID.YELLOW: (  0, 210, 230),
+    ColourID.ORANGE: (  0, 130, 240),
+    ColourID.BROWN:  ( 80, 120, 160),
+}
+
+_FONT = cv2.FONT_HERSHEY_SIMPLEX
+
+class Overlay:
+    """
+    renders annotation overlays onto BGR frames from the pipeline.
+    """
+
+    WINDOW_NAME: str = "M&M Sorter"
+
+    def __init__(self, config: Config) -> None:
+        self._cfg = config.system
+        self._timestamps: collections.deque[float] = collections.deque(maxlen=_FPS_WINDOW_LEN)
+        self._history: collections.deque[Decision] = collections.deque(maxlen=_HISTORY_LEN)
+        self._window_open: bool = False
+        self._debug: bool = True
+
+    @property
+    def debug(self) -> bool:
+        return self._debug
+
+    def toggle_debug(self) -> None:
+        self._debug = not self._debug
+
+    @property
+    def fps(self) -> float:
+        if len(self._timestamps) < 2:
+            return 0.0
+        elapsed = self._timestamps[-1] - self._timestamps[0]
+        if elapsed <= 0.0:
+            return 0.0
+        return (len(self._timestamps) - 1) / elapsed
+
+    def render(
+        self,
+        frame: np.ndarray,
+        result: PreprocessResult,
+        features: Features | None,
+        decision: Decision | None,
+        metrics: RunningMetrics,
+        uart_sent: int = 0,
+        uart_dropped: int = 0,
+        uart_connected: bool = False,
+        record: bool = True,
+    ) -> np.ndarray | None:
+        if not self._cfg.get("display_enabled", True):
+            return None
+        self._timestamps.append(time.monotonic())
+        if decision is not None and record:
+            self._history.append(decision)
+        display = frame.copy()
+        if self._debug:
+            self._draw_roi_boundary(display, frame, result)
+            self._draw_contour(display, result)
+            self._draw_bbox(display, result)
+            self._draw_centroid(display, result)
+            self._draw_label_banner(display, result, decision)
+            self._draw_debug_features(display, result, features)
+            self._draw_no_object(display, result)
+            self._draw_counters(display, metrics)
+            self._draw_status(display, metrics, uart_sent, uart_dropped, uart_connected)
+            self._draw_history(display)
+        h, w = display.shape[:2]
+        scale = float(self._cfg.get("display_scale", 1.0))
+        if scale != 1.0:
+            display = cv2.resize(display, (int(w * scale), int(h * scale)))
+        return display
+
+    def show(self, frame: np.ndarray) -> int:
+        self._window_open = True
+        cv2.imshow(self.WINDOW_NAME, frame)
+        return cv2.waitKey(1)
+
+    def close(self) -> None:
+        if self._window_open:
+            cv2.destroyWindow(self.WINDOW_NAME)
+            self._window_open = False
+
+    def __enter__(self) -> "Overlay":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+    def _draw_roi_boundary(self, display: np.ndarray, frame: np.ndarray, result: PreprocessResult) -> None:
+        # no-op when ROI covers the full frame
+        if result.roi.shape[:2] == frame.shape[:2]:
+            return
+        fh, fw = frame.shape[:2]
+        rh, rw = result.roi.shape[:2]
+        ox = (fw - rw) // 2
+        oy = (fh - rh) // 2
+        cv2.rectangle(display, (ox, oy), (ox + rw, oy + rh), _DIM_COLOUR, 1)
+
+    def _draw_contour(self, display: np.ndarray, result: PreprocessResult) -> None:
+        if not result.found or result.contour is None or result.bbox is None:
+            return
+        # contour is in ROI-local space. offset shifts it to full-frame coordinates
+        lx, ly = cv2.boundingRect(result.contour)[:2]
+        cv2.drawContours(
+            display,
+            [result.contour],
+            -1,
+            _CONTOUR_COLOUR,
+            2,
+            offset=(result.bbox[0] - lx, result.bbox[1] - ly),
+        )
+
+    def _draw_bbox(self, display: np.ndarray, result: PreprocessResult) -> None:
+        if not result.found or result.bbox is None:
+            return
+        x, y, w, h = result.bbox
+        cv2.rectangle(display, (x, y), (x + w, y + h), _BBOX_COLOUR, 2)
+
+    def _draw_centroid(self, display: np.ndarray, result: PreprocessResult) -> None:
+        if not result.found or result.centroid is None:
+            return
+        cv2.circle(display, result.centroid, 5, _CENTROID_COLOUR, -1)
+
+    def _draw_label_banner(self, display: np.ndarray, result: PreprocessResult, decision: Decision | None) -> None:
+        if not result.found or result.bbox is None:
+            return
+        if decision is None:
+            text = "---"
+            colour = _DIM_COLOUR
+        else:
+            text = f"{COLOUR_NAMES[decision.label]}  {decision.confidence:.0%}  [{decision.rule}]"
+            colour = _LABEL_COLOURS[decision.label]
+        ty = max(result.bbox[1] - 8, 16)
+        cv2.putText(display, text, (result.bbox[0], ty), _FONT, 0.6, colour, 2, cv2.LINE_AA)
+
+    def _draw_debug_features(self, display: np.ndarray, result: PreprocessResult, features: Features | None) -> None:
+        if not result.found or features is None or result.bbox is None:
+            return
+        line1 = f"sat={features.sat_mean:.0f}  val={features.val_mean:.0f}"
+        line2 = f"circ={features.circularity:.2f}  tex={features.texture_variance:.0f}"
+        (tw, _), _ = cv2.getTextSize(line1, _FONT, 0.45, 1)
+        fw = display.shape[1]
+        bx, by, bw, bh = result.bbox
+        x_right = bx + bw + 5
+        x = x_right if x_right + tw < fw else bx - tw - 5
+        y = by + bh // 3
+        cv2.putText(display, line1, (x, y),      _FONT, 0.45, _TEXT_COLOUR, 1, cv2.LINE_AA)
+        cv2.putText(display, line2, (x, y + 16), _FONT, 0.45, _TEXT_COLOUR, 1, cv2.LINE_AA)
+
+    def _draw_no_object(self, display: np.ndarray, result: PreprocessResult) -> None:
+        if result.found:
+            return
+        text = "NO OBJECT"
+        (tw, th), _ = cv2.getTextSize(text, _FONT, 1.2, 2)
+        fh, fw = display.shape[:2]
+        tx = (fw - tw) // 2
+        ty = (fh + th) // 2
+        cv2.putText(display, text, (tx, ty), _FONT, 1.2, _DIM_COLOUR, 2, cv2.LINE_AA)
+
+    def _draw_counters(self, display: np.ndarray, metrics: RunningMetrics) -> None:
+        x = 10
+        y = 30
+        for colour_id in [*list(ColourID)[1:], ColourID.NON_MM]:
+            count = metrics.class_count(int(colour_id))
+            text = f"{COLOUR_NAMES[colour_id]}: {count}"
+            cv2.putText(display, text, (x, y), _FONT, 0.55, _LABEL_COLOURS[colour_id], 1, cv2.LINE_AA)
+            y += 28
+
+    def _draw_status(
+        self,
+        display: np.ndarray,
+        metrics: RunningMetrics,
+        uart_sent: int,
+        uart_dropped: int,
+        uart_connected: bool,
+    ) -> None:
+        fh, fw = display.shape[:2]
+        # top-right: FPS and frame count
+        top_text = f"FPS: {self.fps:.1f}  Frames: {metrics.total}"
+        (tw, _), _ = cv2.getTextSize(top_text, _FONT, 0.55, 1)
+        cv2.putText(display, top_text, (fw - tw - 10, 22), _FONT, 0.55, _TEXT_COLOUR, 1, cv2.LINE_AA)
+        # bottom bar: accept/reject counts and UART stats
+        bar_text = f"Accept: {metrics.accepted}  Reject: {metrics.rejected}  |  UART {uart_sent}/{uart_dropped}"
+        cv2.putText(display, bar_text, (10, fh - 10), _FONT, 0.50, _TEXT_COLOUR, 1, cv2.LINE_AA)
+        (bw, _), _ = cv2.getTextSize(bar_text, _FONT, 0.50, 1)
+        uart_label = "OK" if uart_connected else "ERR"
+        uart_colour = _UART_OK_COLOUR if uart_connected else _UART_ERR_COLOUR
+        cv2.putText(display, uart_label, (10 + bw + 8, fh - 10), _FONT, 0.50, uart_colour, 1, cv2.LINE_AA)
+
+    def _draw_history(self, display: np.ndarray) -> None:
+        history = list(self._history)
+        if not history:
+            return
+        fh, fw  = display.shape[:2]
+        bw, bh  = 20, 20   # block width times height
+        gap     = 5        # gap between blocks
+        margin  = 6        # distance from right edge
+        n       = len(history)
+        total_h = n * bh + (n - 1) * gap
+        y0      = (fh - total_h) // 2
+        x0      = fw - bw - margin
+        for i, dec in enumerate(history):
+            y = y0 + i * (bh + gap)
+            cv2.rectangle(display, (x0, y), (x0 + bw, y + bh), _LABEL_COLOURS[dec.label], -1)
+            cv2.rectangle(display, (x0, y), (x0 + bw, y + bh), _DIM_COLOUR, 1)
