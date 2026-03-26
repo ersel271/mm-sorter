@@ -3,7 +3,8 @@
 import cv2
 import numpy as np
 
-from src.vision import Features, PreprocessResult
+from config.constants import ColourID
+from src.vision import Decision, Features, PreprocessResult
 
 def make_preprocess_result(hue=10, sat=200, val=180, radius=30, size=100) -> PreprocessResult:
     """build a synthetic PreprocessResult with a uniform-colour circle."""
@@ -35,6 +36,14 @@ def make_preprocess_result(hue=10, sat=200, val=180, radius=30, size=100) -> Pre
         area=float(cv2.contourArea(contour)),
         found=True,
     )
+
+def make_decision(
+    label: ColourID = ColourID.RED,
+    confidence: float = 0.90,
+    rule: str = "colour",
+    priority: int = 30,
+) -> Decision:
+    return Decision(label=label, confidence=confidence, rule=rule, priority=priority)
 
 def make_features(
     mask_pixels: int = 2827,
