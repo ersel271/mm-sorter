@@ -8,7 +8,7 @@ extensible by adding fields to the dict passed to send().
 Usage:
     sender = UARTSender(cfg)
     sender.open()
-    sender.send({"id": 1, "class": 3, "conf": 0.91, "x": 960, "y": 540})
+    sender.send({"id": 1, "class": 3, "conf": 0.91, "decision": 1, "x": 960, "y": 540})
     sender.close()
 """
 

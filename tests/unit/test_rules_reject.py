@@ -37,9 +37,10 @@ class TestLowSaturationRule:
         cfg = Config()
         rule = LowSaturationRule(cfg)
         threshold = float(cfg.thresholds["sat_min"])
-        # sat_mean = threshold / 2 → confidence = 1 - 0.5 = 0.5
+        # sat_mean = threshold / 2, confidence = sqrt(1 - 0.5) = sqrt(0.5)
         d = rule.apply(make_features(sat_mean=threshold / 2))
-        assert d.confidence == pytest.approx(0.5, abs=0.01)
+        expected = min((1.0 - (threshold / 2) / threshold) ** 0.5, 1.0)
+        assert d.confidence == pytest.approx(expected, abs=0.01)
 
     def test_rule_name_and_priority(self):
         assert LowSaturationRule.name == "low_saturation"
@@ -106,7 +107,7 @@ class TestNarrowHuePeakRule:
         rule = NarrowHuePeakRule(cfg)
         threshold = float(cfg.thresholds["hue_width_min"])
         d = rule.apply(make_features(hue_peak_width=1))
-        expected = min(1.0 - 1.0 / threshold, 1.0)
+        expected = min((1.0 - 1.0 / threshold) ** 0.5, 1.0)
         assert d.confidence == pytest.approx(expected, abs=0.01)
 
     def test_rule_name_and_priority(self):

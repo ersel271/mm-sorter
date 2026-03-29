@@ -34,7 +34,7 @@ class TestLowCircularityRule:
         threshold = float(cfg.thresholds["circularity_min"])
         circ = threshold / 2
         d = rule.apply(make_features(circularity=circ))
-        expected = min(1.0 - circ / threshold, 1.0)
+        expected = min((1.0 - circ / threshold) ** 0.5, 1.0)
         assert d.confidence == pytest.approx(expected, abs=0.01)
 
     def test_rule_name_and_priority(self):
@@ -103,7 +103,7 @@ class TestLowSolidityRule:
         threshold = float(cfg.thresholds["solidity_min"])
         sol = threshold / 2
         d = rule.apply(make_features(solidity=sol))
-        expected = min(1.0 - sol / threshold, 1.0)
+        expected = min((1.0 - sol / threshold) ** 0.5, 1.0)
         assert d.confidence == pytest.approx(expected, abs=0.01)
 
     def test_rule_name_and_priority(self):
