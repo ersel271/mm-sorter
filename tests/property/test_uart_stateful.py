@@ -35,11 +35,12 @@ class UARTSenderStateMachine(RuleBasedStateMachine):
     def send_packet(self):
 
         fields = {
-            "id": 1,
-            "class": 2,
-            "conf": 0.9,
-            "x": 100,
-            "y": 200,
+            "id":       1,
+            "class":    2,
+            "conf":     0.9,
+            "decision": 1,
+            "x":        100,
+            "y":        200,
         }
 
         try:

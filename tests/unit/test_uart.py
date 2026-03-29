@@ -21,7 +21,7 @@ class TestBuildPacket:
 
     def test_basic_fields(self):
         pkt = build_packet(sample_fields())
-        assert pkt == b"42;3;0.91;960;540\n"
+        assert pkt == b"42;3;0.91;1;960;540\n"
 
     def test_float_formatting(self):
         pkt = build_packet({"val": 0.5})
@@ -52,9 +52,9 @@ class TestBuildPacket:
         fields = sample_fields(area=1234, ts=1.50)
         pkt = build_packet(fields)
         parts = pkt.decode("ascii").strip().split(UART_SEPARATOR)
-        assert len(parts) == 7
-        assert parts[5] == "1234"
-        assert parts[6] == "1.50"
+        assert len(parts) == 8
+        assert parts[6] == "1234"
+        assert parts[7] == "1.50"
 
     def test_reduced_fields(self):
         pkt = build_packet({"id": 1, "class": 3})
@@ -80,7 +80,7 @@ class TestUARTSenderSend:
     def test_send_writes_to_port(self, sender, mock_port):
         result = sender.send(sample_fields())
         assert result is True
-        mock_port.write.assert_called_once_with(b"42;3;0.91;960;540\n")
+        mock_port.write.assert_called_once_with(b"42;3;0.91;1;960;540\n")
 
     def test_send_increments_counter(self, sender):
         sender.send(sample_fields(id=1))
