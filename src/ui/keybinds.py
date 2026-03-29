@@ -36,7 +36,7 @@ def handle_key(key: int, ov: Overlay) -> bool:
 
 # actions
 
-def _on_quit(_ov: Overlay) -> bool:
+def _on_quit(ov: Overlay) -> bool:
     return True
 
 def _on_debug(ov: Overlay) -> bool:
