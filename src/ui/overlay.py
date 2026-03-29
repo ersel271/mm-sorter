@@ -186,7 +186,9 @@ class Overlay:
             return
         line1 = f"sat={features.sat_mean:.0f}  val={features.val_mean:.0f}"
         line2 = f"circ={features.circularity:.2f}  tex={features.texture_variance:.0f}"
-        (tw, _), _ = cv2.getTextSize(line1, _FONT, 0.45, 1)
+        (tw1, _), _ = cv2.getTextSize(line1, _FONT, 0.45, 1)
+        (tw2, _), _ = cv2.getTextSize(line2, _FONT, 0.45, 1)
+        tw = max(tw1, tw2)
         fw = display.shape[1]
         bx, by, bw, bh = result.bbox
         x_right = bx + bw + 5
@@ -208,7 +210,7 @@ class Overlay:
     def _draw_counters(self, display: np.ndarray, metrics: RunningMetrics) -> None:
         x = 10
         y = 30
-        for colour_id in [*list(ColourID)[1:], ColourID.NON_MM]:
+        for colour_id in ColourID:
             count = metrics.class_count(int(colour_id))
             text = f"{COLOUR_NAMES[colour_id]}: {count}"
             cv2.putText(display, text, (x, y), _FONT, 0.55, _LABEL_COLOURS[colour_id], 1, cv2.LINE_AA)
