@@ -87,5 +87,6 @@ system:
   event_dir: data/events     # directory for structured vision event logs
   sample_dir: data/samples   # directory for captured sample images
   log_queue_size: 256        # bounded queue size for async logging
+  found_frames_min: 3        # consecutive found frames before recording; 1 = record on first frame
   display_enabled: true      # show live annotated video window
   display_scale: 1.0         # scale factor for the display window
