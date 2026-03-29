@@ -10,20 +10,27 @@ Usage:
     @register_rule
     class MyRule(Rule):
         name = "my_rule"
-        priority = 10
+        priority = Priority.SX
         def apply(self, f: Features) -> Decision | None: ...
 """
 
 import logging
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from enum import IntEnum
 from typing import ClassVar
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 from config import Config
 from .features import Features
 from config.constants import ColourID
 
 log = logging.getLogger(__name__)
+
+class Priority(IntEnum):
+    """rule evaluation stages ordered by execution sequence, lower value fires first."""
+    S1 = 10
+    S2 = 20
+    S3 = 30
 
 _RULE_REGISTRY: list[type["Rule"]] = []
 

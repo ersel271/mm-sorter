@@ -2,12 +2,12 @@
 """Stage 1 rules: photometric strong exclusion."""
 
 from config.constants import ColourID
-from src.vision import Decision, Features, Rule, register_rule
+from src.vision import Decision, Features, Rule, register_rule, Priority
 
 @register_rule
 class LowSaturationRule(Rule):
     name = "low_saturation"
-    priority = 10
+    priority = Priority.S1
 
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["sat_min"]
@@ -19,7 +19,7 @@ class LowSaturationRule(Rule):
 @register_rule
 class HighHighlightRule(Rule):
     name = "high_highlight"
-    priority = 10
+    priority = Priority.S1
 
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["highlight_max"]
@@ -33,7 +33,7 @@ class HighHighlightRule(Rule):
 @register_rule
 class NarrowHuePeakRule(Rule):
     name = "narrow_hue_peak"
-    priority = 10
+    priority = Priority.S1
 
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["hue_width_min"]

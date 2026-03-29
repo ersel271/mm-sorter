@@ -2,12 +2,12 @@
 """Stage 2 rules: shape and surface quality validation."""
 
 from config.constants import ColourID
-from src.vision import Decision, Features, Rule, register_rule
+from src.vision import Decision, Features, Rule, register_rule, Priority
 
 @register_rule
 class LowCircularityRule(Rule):
     name = "low_circularity"
-    priority = 20
+    priority = Priority.S2
 
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["circularity_min"]
@@ -19,7 +19,7 @@ class LowCircularityRule(Rule):
 @register_rule
 class BadAspectRatioRule(Rule):
     name = "bad_aspect_ratio"
-    priority = 20
+    priority = Priority.S2
 
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["aspect_ratio_max"]
@@ -31,7 +31,7 @@ class BadAspectRatioRule(Rule):
 @register_rule
 class LowSolidityRule(Rule):
     name = "low_solidity"
-    priority = 20
+    priority = Priority.S2
 
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["solidity_min"]
@@ -43,7 +43,7 @@ class LowSolidityRule(Rule):
 @register_rule
 class HighTextureRule(Rule):
     name = "high_texture"
-    priority = 20
+    priority = Priority.S2
 
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["texture_max"]
