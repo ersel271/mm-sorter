@@ -7,13 +7,6 @@ from src.io import UARTSender, build_packet
 from config.constants import UART_SEPARATOR, UART_TERMINATOR
 from tests.helpers.uart_helpers import sample_fields
 
-@pytest.fixture
-def sender(default_cfg, mock_port) -> UARTSender:
-    s = UARTSender(default_cfg)
-    s._port = mock_port
-    s._is_open = True
-    return s
-
 @pytest.mark.smoke
 @pytest.mark.unit
 class TestBuildPacket:
