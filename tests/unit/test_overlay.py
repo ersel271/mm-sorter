@@ -9,8 +9,8 @@ from src.ui import Overlay
 from config import Config
 from config.constants import ColourID
 from utils.metrics import RunningMetrics
+from tests.helpers.features_helpers import make_decision
 from tests.helpers.overlay_helpers import NOT_FOUND, render_overlay
-from tests.helpers.features_helpers import make_decision, make_preprocess_result
 
 @pytest.mark.smoke
 @pytest.mark.unit
