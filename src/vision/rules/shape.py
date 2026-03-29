@@ -12,7 +12,7 @@ class LowCircularityRule(Rule):
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["circularity_min"]
         if f.circularity < threshold:
-            confidence = min(1.0 - f.circularity / threshold, 1.0)
+            confidence = min((1.0 - f.circularity / threshold) ** 0.5, 1.0)
             return Decision(ColourID.NON_MM, confidence, self.name, self.priority)
         return None
 
@@ -24,7 +24,7 @@ class BadAspectRatioRule(Rule):
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["aspect_ratio_max"]
         if f.aspect_ratio > threshold:
-            confidence = min((f.aspect_ratio - threshold) / threshold, 1.0)
+            confidence = min(((f.aspect_ratio - threshold) / threshold) ** 0.5, 1.0)
             return Decision(ColourID.NON_MM, confidence, self.name, self.priority)
         return None
 
@@ -36,7 +36,7 @@ class LowSolidityRule(Rule):
     def apply(self, f: Features) -> Decision | None:
         threshold = self._cfg.thresholds["solidity_min"]
         if f.solidity < threshold:
-            confidence = min(1.0 - f.solidity / threshold, 1.0)
+            confidence = min((1.0 - f.solidity / threshold) ** 0.5, 1.0)
             return Decision(ColourID.NON_MM, confidence, self.name, self.priority)
         return None
 
@@ -49,6 +49,6 @@ class HighTextureRule(Rule):
         threshold = self._cfg.thresholds["texture_max"]
         if f.texture_variance > threshold:
             base = threshold if threshold > 0 else 1.0
-            confidence = min((f.texture_variance - threshold) / base, 1.0)
+            confidence = min(((f.texture_variance - threshold) / base) ** 0.5, 1.0)
             return Decision(ColourID.NON_MM, confidence, self.name, self.priority)
         return None
