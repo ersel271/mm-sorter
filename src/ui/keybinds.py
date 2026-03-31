@@ -18,19 +18,24 @@ from src.ui.overlay import Overlay
 
 log = logging.getLogger(__name__)
 
-# q: quit  d: toggle debug overlay
 _BINDS: dict[int, str] = {
     ord("q"): "quit",
     ord("d"): "debug",
+    ord("t"): "sidebar",
+    ord("l"): "log",
 }
 
 def handle_key(key: int, ov: Overlay) -> bool:
-    """Process a keypress; return True if the app should quit."""
+    """process a keypress and return True if the app should quit."""
     match _BINDS.get(key & 0xFF):
         case "quit":
             return _on_quit(ov)
         case "debug":
             return _on_debug(ov)
+        case "sidebar":
+            return _on_sidebar(ov)
+        case "log":
+            return _on_log(ov)
         case _:
             return False
 
@@ -42,4 +47,12 @@ def _on_quit(ov: Overlay) -> bool:
 def _on_debug(ov: Overlay) -> bool:
     ov.toggle_debug()
     log.info("debug overlay %s", "on" if ov.debug else "off")
+    return False
+
+def _on_sidebar(ov: Overlay) -> bool:
+    ov.toggle_sidebar()
+    return False
+
+def _on_log(ov: Overlay) -> bool:
+    ov.toggle_log()
     return False
