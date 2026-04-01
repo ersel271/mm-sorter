@@ -5,6 +5,7 @@ import pytest
 
 from config import Config
 from src.ui import Overlay
+from src.ui.panel import PANEL_W
 from utils.metrics import RunningMetrics
 from tests.helpers.image_helpers import draw_saturated_circle, make_frame
 from tests.helpers.overlay_helpers import NOT_FOUND
@@ -19,8 +20,8 @@ class TestOverlayFullPipeline:
         assert result.found
         features = extractor.extract(result)
         decision = classifier.classify(features)
-        ov = Overlay(Config())
-        out = ov.render(frame, result, features, decision, RunningMetrics())
+        ov = Overlay(Config(), RunningMetrics())
+        out = ov.render(frame, result, features, decision)
         assert isinstance(out, np.ndarray)
 
     def test_output_dtype_uint8(self, prep, extractor, classifier) -> None:
@@ -28,8 +29,8 @@ class TestOverlayFullPipeline:
         result = prep.process(frame)
         features = extractor.extract(result)
         decision = classifier.classify(features)
-        ov = Overlay(Config())
-        out = ov.render(frame, result, features, decision, RunningMetrics())
+        ov = Overlay(Config(), RunningMetrics())
+        out = ov.render(frame, result, features, decision)
         assert out is not None
         assert out.dtype == np.uint8
 
@@ -38,10 +39,10 @@ class TestOverlayFullPipeline:
         result = prep.process(frame)
         features = extractor.extract(result)
         decision = classifier.classify(features)
-        ov = Overlay(Config())
-        out = ov.render(frame, result, features, decision, RunningMetrics())
+        ov = Overlay(Config(), RunningMetrics())
+        out = ov.render(frame, result, features, decision)
         assert out is not None
-        assert out.shape[:2] == (480, 640)
+        assert out.shape[:2] == (480, 640 + PANEL_W)
 
     def test_pipeline_with_populated_metrics(self, prep, extractor, classifier) -> None:
         from utils.events import VisionEvent
@@ -60,8 +61,8 @@ class TestOverlayFullPipeline:
             aspect_ratio=1.1, solidity=0.95, frame_ms=10.0,
         )
         metrics.update(event)
-        ov = Overlay(Config())
-        out = ov.render(frame, result, features, decision, metrics)
+        ov = Overlay(Config(), RunningMetrics())
+        out = ov.render(frame, result, features, decision)
         assert out is not None
 
 @pytest.mark.integration
@@ -72,26 +73,26 @@ class TestOverlayNotFoundPipeline:
         frame = make_frame()
         result = prep.process(frame)
         assert not result.found
-        ov = Overlay(Config())
-        out = ov.render(frame, result, None, None, RunningMetrics())
+        ov = Overlay(Config(), RunningMetrics())
+        out = ov.render(frame, result, None, None)
         assert isinstance(out, np.ndarray)
 
     def test_not_found_result_directly_renders(self) -> None:
         frame = np.zeros((100, 100, 3), dtype=np.uint8)
         result = NOT_FOUND
-        ov = Overlay(Config())
-        out = ov.render(frame, result, None, None, RunningMetrics())
+        ov = Overlay(Config(), RunningMetrics())
+        out = ov.render(frame, result, None, None)
         assert isinstance(out, np.ndarray)
 
     def test_disabled_overlay_returns_none(self, overlay_disabled) -> None:
         frame = make_frame()
         result = NOT_FOUND
-        out = overlay_disabled.render(frame, result, None, None, RunningMetrics())
+        out = overlay_disabled.render(frame, result, None, None)
         assert out is None
 
     def test_decision_none_features_none_renders(self, prep) -> None:
         frame = draw_saturated_circle(make_frame(), radius=60)
         result = prep.process(frame)
-        ov = Overlay(Config())
-        out = ov.render(frame, result, None, None, RunningMetrics())
+        ov = Overlay(Config(), RunningMetrics())
+        out = ov.render(frame, result, None, None)
         assert isinstance(out, np.ndarray)
