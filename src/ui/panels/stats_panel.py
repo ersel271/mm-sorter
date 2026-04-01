@@ -68,7 +68,7 @@ class StatsPanel(Panel):
         bar_x0, bar_x1 = 12, PANEL_W - 12
         bar_w = bar_x1 - bar_x0
 
-        for colour_id, count in zip(_ALL_COLOURS, counts):
+        for colour_id, count in zip(_ALL_COLOURS, counts, strict=True):
             name   = COLOUR_NAMES[colour_id]
             colour = LABEL_COLOURS[colour_id]
 

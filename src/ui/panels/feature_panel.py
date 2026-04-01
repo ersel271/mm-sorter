@@ -52,7 +52,7 @@ class FeaturePanel(Panel):
         bar_x0, bar_x1 = 12, PANEL_W - 12
         bar_w = bar_x1 - bar_x0
 
-        for i, ((label, lo, hi), val) in enumerate(zip(_ROWS, vals)):
+        for i, ((label, lo, hi), val) in enumerate(zip(_ROWS, vals, strict=True)):
             y = y0 + i * row_h
             val_text = f"{val:.2f}" if hi <= 2.0 else f"{val:.1f}"
             cv2.putText(panel, label, (bar_x0, y), FONT, 0.42, TEXT_COLOUR, 1, cv2.LINE_AA)
