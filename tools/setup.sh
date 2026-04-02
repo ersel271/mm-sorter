@@ -39,7 +39,7 @@ pip install -r "$REQ_FILE" > /dev/null
 chmod +x "$PROJECT_ROOT"/tools/*.sh
 
 echo "creating runtime directories ..."
-mkdir -p "$PROJECT_ROOT"/data/{logs,events,samples}
+mkdir -p "$PROJECT_ROOT"/data/{logs,events,samples,plots}
 
 if [ "$MODE" = "dev" ]; then
     echo "creating dev environment specific directories ..."
