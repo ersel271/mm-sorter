@@ -33,7 +33,7 @@ class StatsPanel(Panel):
     def render(self, features: Features | None, decision: Decision | None, panel_h: int) -> np.ndarray:
         panel = np.full((panel_h, PANEL_W, 3), 18, dtype=np.uint8)
         cv2.line(panel, (0, 0), (0, panel_h - 1), PANEL_SEP_COLOUR, 1)
-        cv2.putText(panel, "Detection  [STATS]", (12, 24), FONT, 0.44, TEXT_COLOUR, 1, cv2.LINE_AA)
+        cv2.putText(panel, "[STATS]", (12, 24), FONT, 0.44, TEXT_COLOUR, 1, cv2.LINE_AA)
         cv2.line(panel, (8, 32), (PANEL_W - 8, 32), PANEL_SEP_COLOUR, 1)
 
         m = self._metrics
