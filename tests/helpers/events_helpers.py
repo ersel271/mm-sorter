@@ -1,6 +1,8 @@
 # tests/helpers/events_helpers.py
 
+from config.constants import ColourID
 from utils.events import VisionEvent
+from utils.metrics import RunningMetrics
 
 def make_event(**overrides) -> VisionEvent:
     defaults = {
@@ -25,3 +27,15 @@ def make_event(**overrides) -> VisionEvent:
     }
     defaults.update(overrides)
     return VisionEvent(**defaults)
+
+def make_metrics() -> RunningMetrics:
+    """build a RunningMetrics instance with a few events across different colour classes."""
+    m = RunningMetrics()
+    for colour_id, decision in [
+        (ColourID.RED,    "ACCEPT"),
+        (ColourID.GREEN,  "ACCEPT"),
+        (ColourID.BLUE,   "ACCEPT"),
+        (ColourID.NON_MM, "REJECT"),
+    ]:
+        m.update(make_event(class_id=int(colour_id), decision=decision))
+    return m
