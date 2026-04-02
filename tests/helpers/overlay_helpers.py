@@ -5,7 +5,6 @@ from dataclasses import replace
 import numpy as np
 
 from src.ui import Overlay
-from utils.metrics import RunningMetrics
 from tests.helpers.features_helpers import make_decision, make_features, make_preprocess_result
 
 NOT_FOUND = replace(
@@ -28,7 +27,6 @@ def render_overlay(overlay: Overlay, found: bool = False, **kwargs) -> np.ndarra
         result,
         kwargs.get("features", features),
         kwargs.get("decision", decision),
-        kwargs.get("metrics", RunningMetrics()),
         uart_sent=kwargs.get("uart_sent", 0),
         uart_dropped=kwargs.get("uart_dropped", 0),
         uart_connected=kwargs.get("uart_connected", False),

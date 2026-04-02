@@ -7,7 +7,7 @@ frame. render() returns an annotated ndarray; show() is isolated so
 CI can run headlessly without a display.
 
 Usage:
-    with Overlay(cfg) as ov:
+    with Overlay(cfg, metrics) as ov:
         frame_out = ov.render(frame, result, features, decision, metrics)
         if frame_out is not None:
             key = ov.show(frame_out)
@@ -21,10 +21,12 @@ import cv2
 import numpy as np
 
 from config import Config
-from config.constants import ColourID, COLOUR_NAMES
+from config.constants import COLOUR_NAMES
 from src.vision.features import Features
 from src.vision.preprocess import PreprocessResult
 from src.vision.rule import Decision
+from src.ui.panel import LABEL_COLOURS
+from src.ui.panels import FeaturePanel, DecisionPanel, StatsPanel, LogPanel
 from utils.metrics import RunningMetrics
 
 log = logging.getLogger(__name__)
@@ -41,16 +43,6 @@ _DIM_COLOUR:      tuple[int, int, int] = (110, 110, 110)
 _UART_OK_COLOUR:  tuple[int, int, int] = (  0, 200,  80)
 _UART_ERR_COLOUR: tuple[int, int, int] = ( 60,  60, 200)
 
-_LABEL_COLOURS: dict[ColourID, tuple[int, int, int]] = {
-    ColourID.NON_MM: (110, 110, 110),
-    ColourID.RED:    ( 40,  50, 220),
-    ColourID.GREEN:  ( 10, 200,  60),
-    ColourID.BLUE:   (220, 100,  10),
-    ColourID.YELLOW: (  0, 210, 230),
-    ColourID.ORANGE: (  0, 130, 240),
-    ColourID.BROWN:  ( 80, 120, 160),
-}
-
 _FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 class Overlay:
@@ -60,12 +52,21 @@ class Overlay:
 
     WINDOW_NAME: str = "M&M Sorter"
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, metrics: RunningMetrics) -> None:
         self._cfg = config.system
         self._timestamps: collections.deque[float] = collections.deque(maxlen=_FPS_WINDOW_LEN)
         self._history: collections.deque[Decision] = collections.deque(maxlen=_HISTORY_LEN)
         self._window_open: bool = False
         self._debug: bool = True
+        self._last_features: Features | None = None
+        self._last_decision: Decision | None = None
+        self._feature_panel: FeaturePanel = FeaturePanel()
+        self._decision_panel: DecisionPanel = DecisionPanel(config)
+        self._metrics: RunningMetrics = metrics
+        self._stats_panel: StatsPanel = StatsPanel(metrics)
+        self._log_panel: LogPanel = LogPanel()
+        self._sidebar_mode: int = 0  # 0 = features, 1 = rules, 2 = stats
+        self._show_log: bool = False
 
     @property
     def debug(self) -> bool:
@@ -73,6 +74,12 @@ class Overlay:
 
     def toggle_debug(self) -> None:
         self._debug = not self._debug
+
+    def toggle_sidebar(self) -> None:
+        self._sidebar_mode = (self._sidebar_mode + 1) % 3
+
+    def toggle_log(self) -> None:
+        self._show_log = not self._show_log
 
     @property
     def fps(self) -> float:
@@ -89,7 +96,6 @@ class Overlay:
         result: PreprocessResult,
         features: Features | None,
         decision: Decision | None,
-        metrics: RunningMetrics,
         uart_sent: int = 0,
         uart_dropped: int = 0,
         uart_connected: bool = False,
@@ -100,23 +106,47 @@ class Overlay:
         self._timestamps.append(time.monotonic())
         if decision is not None and record:
             self._history.append(decision)
+        if features is not None:
+            self._last_features = features
+        if decision is not None:
+            self._last_decision = decision
+
         display = frame.copy()
+
+        # always-on: core detection feedback
+        self._draw_bbox(display, result)
+        self._draw_label_banner(display, result, decision)
+
+        # debug-only: diagnostic overlays
         if self._debug:
             self._draw_roi_boundary(display, frame, result)
             self._draw_contour(display, result)
-            self._draw_bbox(display, result)
             self._draw_centroid(display, result)
-            self._draw_label_banner(display, result, decision)
-            self._draw_debug_features(display, result, features)
             self._draw_no_object(display, result)
-            self._draw_counters(display, metrics)
-            self._draw_status(display, metrics, uart_sent, uart_dropped, uart_connected)
-            self._draw_history(display)
+            self._draw_status(display, uart_sent, uart_dropped, uart_connected)
+
         h, w = display.shape[:2]
         scale = float(self._cfg.get("display_scale", 1.0))
         if scale != 1.0:
             display = cv2.resize(display, (int(w * scale), int(h * scale)))
-        return display
+
+        h = display.shape[0]
+        if self._sidebar_mode == 0:
+            sidebar = self._feature_panel.render(self._last_features, None, h)
+        elif self._sidebar_mode == 1:
+            sidebar = self._decision_panel.render(self._last_features, self._last_decision, h)
+        else:
+            sidebar = self._stats_panel.render(None, None, h)
+        combined = np.hstack([display, sidebar])
+
+        # draw history before log strip so centering uses only the camera frame height
+        if self._debug:
+            self._draw_history(combined)
+
+        if self._show_log:
+            combined = np.vstack([combined, self._log_panel.render(combined.shape[1])])
+
+        return combined
 
     def show(self, frame: np.ndarray) -> int:
         self._window_open = True
@@ -132,6 +162,8 @@ class Overlay:
         return self
 
     def __exit__(self, *_: object) -> None:
+        # log_panel owns a background tail thread; explicit close joins it before teardown
+        self._log_panel.close()
         self.close()
 
     def _draw_roi_boundary(self, display: np.ndarray, frame: np.ndarray, result: PreprocessResult) -> None:
@@ -177,23 +209,9 @@ class Overlay:
             colour = _DIM_COLOUR
         else:
             text = f"{COLOUR_NAMES[decision.label]}  {decision.confidence:.0%}  [{decision.rule}]"
-            colour = _LABEL_COLOURS[decision.label]
+            colour = LABEL_COLOURS[decision.label]
         ty = max(result.bbox[1] - 8, 16)
         cv2.putText(display, text, (result.bbox[0], ty), _FONT, 0.6, colour, 2, cv2.LINE_AA)
-
-    def _draw_debug_features(self, display: np.ndarray, result: PreprocessResult, features: Features | None) -> None:
-        if not result.found or features is None or result.bbox is None:
-            return
-        line1 = f"sat={features.sat_mean:.0f}  val={features.val_mean:.0f}"
-        line2 = f"circ={features.circularity:.2f}  tex={features.texture_variance:.0f}"
-        (tw, _), _ = cv2.getTextSize(line1, _FONT, 0.45, 1)
-        fw = display.shape[1]
-        bx, by, bw, bh = result.bbox
-        x_right = bx + bw + 5
-        x = x_right if x_right + tw < fw else bx - tw - 5
-        y = by + bh // 3
-        cv2.putText(display, line1, (x, y),      _FONT, 0.45, _TEXT_COLOUR, 1, cv2.LINE_AA)
-        cv2.putText(display, line2, (x, y + 16), _FONT, 0.45, _TEXT_COLOUR, 1, cv2.LINE_AA)
 
     def _draw_no_object(self, display: np.ndarray, result: PreprocessResult) -> None:
         if result.found:
@@ -205,49 +223,37 @@ class Overlay:
         ty = (fh + th) // 2
         cv2.putText(display, text, (tx, ty), _FONT, 1.2, _DIM_COLOUR, 2, cv2.LINE_AA)
 
-    def _draw_counters(self, display: np.ndarray, metrics: RunningMetrics) -> None:
-        x = 10
-        y = 30
-        for colour_id in [*list(ColourID)[1:], ColourID.NON_MM]:
-            count = metrics.class_count(int(colour_id))
-            text = f"{COLOUR_NAMES[colour_id]}: {count}"
-            cv2.putText(display, text, (x, y), _FONT, 0.55, _LABEL_COLOURS[colour_id], 1, cv2.LINE_AA)
-            y += 28
+    def _draw_status(self, display: np.ndarray, uart_sent: int, uart_dropped: int, uart_connected: bool) -> None:
+        _, fw = display.shape[:2]
 
-    def _draw_status(
-        self,
-        display: np.ndarray,
-        metrics: RunningMetrics,
-        uart_sent: int,
-        uart_dropped: int,
-        uart_connected: bool,
-    ) -> None:
-        fh, fw = display.shape[:2]
-        # top-right: FPS and frame count
-        top_text = f"FPS: {self.fps:.1f}  Frames: {metrics.total}"
-        (tw, _), _ = cv2.getTextSize(top_text, _FONT, 0.55, 1)
-        cv2.putText(display, top_text, (fw - tw - 10, 22), _FONT, 0.55, _TEXT_COLOUR, 1, cv2.LINE_AA)
-        # bottom bar: accept/reject counts and UART stats
-        bar_text = f"Accept: {metrics.accepted}  Reject: {metrics.rejected}  |  UART {uart_sent}/{uart_dropped}"
-        cv2.putText(display, bar_text, (10, fh - 10), _FONT, 0.50, _TEXT_COLOUR, 1, cv2.LINE_AA)
-        (bw, _), _ = cv2.getTextSize(bar_text, _FONT, 0.50, 1)
+        # top-right: FPS, frame count, then UART on the line below
+        fps_text = f"FPS: {self.fps:.1f}  Frames: {self._metrics.total}"
+        (fw1, _), _ = cv2.getTextSize(fps_text, _FONT, 0.55, 1)
+        cv2.putText(display, fps_text, (fw - fw1 - 10, 22), _FONT, 0.55, _TEXT_COLOUR, 1, cv2.LINE_AA)
+
+        uart_text = f"UART {uart_sent}/{uart_dropped}"
+        (utw, _), _ = cv2.getTextSize(uart_text, _FONT, 0.50, 1)
         uart_label = "OK" if uart_connected else "ERR"
         uart_colour = _UART_OK_COLOUR if uart_connected else _UART_ERR_COLOUR
-        cv2.putText(display, uart_label, (10 + bw + 8, fh - 10), _FONT, 0.50, uart_colour, 1, cv2.LINE_AA)
+        (ulw, _), _ = cv2.getTextSize(uart_label, _FONT, 0.50, 1)
+        total_uart_w = utw + 8 + ulw
+        ux = fw - total_uart_w - 10
+        cv2.putText(display, uart_text,  (ux,           42), _FONT, 0.50, _TEXT_COLOUR, 1, cv2.LINE_AA)
+        cv2.putText(display, uart_label, (ux + utw + 8, 42), _FONT, 0.50, uart_colour,  1, cv2.LINE_AA)
 
     def _draw_history(self, display: np.ndarray) -> None:
         history = list(self._history)
         if not history:
             return
-        fh, fw  = display.shape[:2]
-        bw, bh  = 20, 20   # block width times height
-        gap     = 5        # gap between blocks
-        margin  = 6        # distance from right edge
+        fh, _   = display.shape[:2]
+        bw, bh  = 20, 20
+        gap     = 5
+        margin  = 6
         n       = len(history)
         total_h = n * bh + (n - 1) * gap
         y0      = (fh - total_h) // 2
-        x0      = fw - bw - margin
+        x0      = margin
         for i, dec in enumerate(history):
             y = y0 + i * (bh + gap)
-            cv2.rectangle(display, (x0, y), (x0 + bw, y + bh), _LABEL_COLOURS[dec.label], -1)
+            cv2.rectangle(display, (x0, y), (x0 + bw, y + bh), LABEL_COLOURS[dec.label], -1)
             cv2.rectangle(display, (x0, y), (x0 + bw, y + bh), _DIM_COLOUR, 1)

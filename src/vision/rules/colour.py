@@ -2,12 +2,12 @@
 """Stage 3 rule: compound colour classification using hue histogram and s/v gating."""
 
 from config.constants import COLOUR_IDS, ColourID
-from src.vision import Decision, Features, Rule, register_rule
+from src.vision import Decision, Features, Rule, register_rule, Priority
 
 @register_rule
 class ColourClassificationRule(Rule):
     name = "colour_match"
-    priority = 30
+    priority = Priority.S3
 
     def apply(self, f: Features) -> Decision | None:
         min_conf = self._cfg.thresholds["colour_confidence_min"]

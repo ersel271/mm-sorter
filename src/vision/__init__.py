@@ -2,5 +2,5 @@
 
 from .preprocess import Preprocessor, PreprocessResult
 from .features import FeatureExtractor, Features
-from .rule import Decision, Rule, register_rule
+from .rule import Decision, Rule, register_rule, Priority
 from .classifier import Classifier
