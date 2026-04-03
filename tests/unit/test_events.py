@@ -28,7 +28,7 @@ class TestVisionEventFields:
         field_names = {f.name for f in fields(VisionEvent)}
         required = {
             "ts_wall", "ts_mono", "object_id", "class_id", "class_name",
-            "confidence", "decision", "centroid_x", "centroid_y", "area",
+            "confidence", "low_confidence", "centroid_x", "centroid_y", "area",
             "sat_mean", "highlight_ratio", "hue_peak_width", "texture_variance",
             "circularity", "aspect_ratio", "solidity", "frame_ms",
         }
@@ -149,19 +149,19 @@ class TestEventQueueWorker:
         lines = worker.writer_path.read_text().splitlines()
         assert len(lines) == 10
 
-    def test_updates_metrics_on_accept(self, tmp_cfg, metrics):
+    def test_updates_metrics_low_confidence(self, tmp_cfg, metrics):
         worker = EventQueueWorker(tmp_cfg, metrics=metrics)
-        worker.enqueue(make_event(decision="ACCEPT"))
+        worker.enqueue(make_event(low_confidence=True))
         self._drain(worker)
         worker.stop()
-        assert metrics.accepted == 1
+        assert metrics.low_confidence == 1
 
-    def test_updates_metrics_on_reject(self, tmp_cfg, metrics):
+    def test_updates_metrics_normal_confidence(self, tmp_cfg, metrics):
         worker = EventQueueWorker(tmp_cfg, metrics=metrics)
-        worker.enqueue(make_event(decision="REJECT"))
+        worker.enqueue(make_event(low_confidence=False))
         self._drain(worker)
         worker.stop()
-        assert metrics.rejected == 1
+        assert metrics.low_confidence == 0
 
     def test_dropped_starts_at_zero(self, tmp_cfg):
         worker = EventQueueWorker(tmp_cfg)

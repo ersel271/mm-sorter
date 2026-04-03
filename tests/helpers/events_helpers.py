@@ -12,7 +12,7 @@ def make_event(**overrides) -> VisionEvent:
         "class_id": 1,
         "class_name": "red",
         "confidence": 0.92,
-        "decision": "ACCEPT",
+        "low_confidence": False,
         "centroid_x": 400,
         "centroid_y": 200,
         "area": 1800.0,
@@ -31,11 +31,11 @@ def make_event(**overrides) -> VisionEvent:
 def make_metrics() -> RunningMetrics:
     """build a RunningMetrics instance with a few events across different colour classes."""
     m = RunningMetrics()
-    for colour_id, decision in [
-        (ColourID.RED,    "ACCEPT"),
-        (ColourID.GREEN,  "ACCEPT"),
-        (ColourID.BLUE,   "ACCEPT"),
-        (ColourID.NON_MM, "REJECT"),
+    for colour_id, low_conf in [
+        (ColourID.RED,    False),
+        (ColourID.GREEN,  False),
+        (ColourID.BLUE,   False),
+        (ColourID.NON_MM, True),
     ]:
-        m.update(make_event(class_id=int(colour_id), decision=decision))
+        m.update(make_event(class_id=int(colour_id), low_confidence=low_conf))
     return m

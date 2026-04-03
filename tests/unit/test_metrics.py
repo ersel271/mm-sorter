@@ -7,38 +7,32 @@ from utils.metrics import confusion_matrix, per_class_metrics, accuracy, normali
 
 @pytest.mark.unit
 class TestRunningMetricsCounters:
-    """verify total, accepted, and rejected counters"""
+    """verify total and low_confidence counters"""
 
     def test_initial_total_is_zero(self, metrics):
         assert metrics.total == 0
 
-    def test_initial_accepted_is_zero(self, metrics):
-        assert metrics.accepted == 0
-
-    def test_initial_rejected_is_zero(self, metrics):
-        assert metrics.rejected == 0
+    def test_initial_low_confidence_is_zero(self, metrics):
+        assert metrics.low_confidence == 0
 
     def test_total_increments_on_update(self, metrics):
         metrics.update(make_event())
         assert metrics.total == 1
 
-    def test_accepted_increments_on_accept(self, metrics):
-        metrics.update(make_event(decision="ACCEPT"))
-        assert metrics.accepted == 1
-        assert metrics.rejected == 0
+    def test_low_confidence_increments_when_flagged(self, metrics):
+        metrics.update(make_event(low_confidence=True))
+        assert metrics.low_confidence == 1
 
-    def test_rejected_increments_on_reject(self, metrics):
-        metrics.update(make_event(decision="REJECT"))
-        assert metrics.rejected == 1
-        assert metrics.accepted == 0
+    def test_low_confidence_unchanged_when_normal(self, metrics):
+        metrics.update(make_event(low_confidence=False))
+        assert metrics.low_confidence == 0
 
     def test_multiple_updates_accumulate(self, metrics):
         for _ in range(3):
-            metrics.update(make_event(decision="ACCEPT"))
-        metrics.update(make_event(decision="REJECT"))
+            metrics.update(make_event(low_confidence=False))
+        metrics.update(make_event(low_confidence=True))
         assert metrics.total == 4
-        assert metrics.accepted == 3
-        assert metrics.rejected == 1
+        assert metrics.low_confidence == 1
 
 @pytest.mark.unit
 class TestRunningMetricsPerClass:
@@ -87,14 +81,14 @@ class TestRunningMetricsSnapshot:
 
     def test_snapshot_contains_expected_keys(self, metrics):
         snap = metrics.snapshot()
-        for key in ("total", "accepted", "rejected", "mean_confidence", "mean_frame_ms", "per_class"):
+        for key in ("total", "low_confidence", "mean_confidence", "mean_frame_ms", "per_class"):
             assert key in snap
 
     def test_snapshot_values_match_properties(self, metrics):
-        metrics.update(make_event(decision="ACCEPT", confidence=0.75, frame_ms=25.0))
+        metrics.update(make_event(confidence=0.75, frame_ms=25.0))
         snap = metrics.snapshot()
         assert snap["total"] == metrics.total
-        assert snap["accepted"] == metrics.accepted
+        assert snap["low_confidence"] == metrics.low_confidence
         assert snap["mean_confidence"] == pytest.approx(metrics.mean_confidence)
 
 @pytest.mark.unit
