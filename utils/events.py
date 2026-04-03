@@ -14,15 +14,17 @@ Usage:
 from __future__ import annotations
 
 import json
-import logging
 import queue
+import logging
 import threading
-from dataclasses import dataclass, asdict
-from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
+from datetime import datetime, UTC
+from dataclasses import dataclass, asdict
 
 from config import Config
+from config.constants import COLOUR_NAMES
+from src.vision import PreprocessResult, Features, Decision
 
 if TYPE_CHECKING:
     from utils.metrics import RunningMetrics
@@ -44,7 +46,7 @@ class VisionEvent:
     class_id: int
     class_name: str
     confidence: float
-    decision: str
+    low_confidence: bool
     centroid_x: int
     centroid_y: int
     area: float
@@ -67,6 +69,29 @@ def check_reserved_fields() -> None:
 def serialise_event(event: VisionEvent) -> str:
     """serialise a VisionEvent to a compact JSON string without trailing newline"""
     return json.dumps(asdict(event), separators=(",", ":"))
+
+def make_event(object_id: int, result: PreprocessResult, features: Features, decision: Decision, frame_ms: float, ts_mono: float, effective_class: int, low_confidence: bool) -> VisionEvent:
+    """build a VisionEvent from pipeline outputs"""
+    return VisionEvent(
+        ts_wall          = datetime.now(UTC).isoformat(),
+        ts_mono          = ts_mono,
+        object_id        = object_id,
+        class_id         = effective_class,
+        class_name       = COLOUR_NAMES[effective_class],
+        confidence       = decision.confidence,
+        low_confidence   = low_confidence,
+        centroid_x       = result.centroid[0] if result.centroid else 0,
+        centroid_y       = result.centroid[1] if result.centroid else 0,
+        area             = result.area,
+        sat_mean         = features.sat_mean,
+        highlight_ratio  = features.highlight_ratio,
+        hue_peak_width   = features.hue_peak_width,
+        texture_variance = features.texture_variance,
+        circularity      = features.circularity,
+        aspect_ratio     = features.aspect_ratio,
+        solidity         = features.solidity,
+        frame_ms         = frame_ms,
+    )
 
 class EventWriter:
     """

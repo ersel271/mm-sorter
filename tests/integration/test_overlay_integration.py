@@ -54,7 +54,7 @@ class TestOverlayFullPipeline:
         event = VisionEvent(
             ts_wall="2024-01-01T00:00:00", ts_mono=0.0,
             object_id=1, class_id=int(decision.label), class_name="Red",
-            confidence=decision.confidence, decision="ACCEPT",
+            confidence=decision.confidence, low_confidence=False,
             centroid_x=960, centroid_y=540, area=1000.0,
             sat_mean=180.0, highlight_ratio=0.05, hue_peak_width=20,
             texture_variance=50.0, circularity=0.90,

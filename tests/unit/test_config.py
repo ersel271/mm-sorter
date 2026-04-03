@@ -267,6 +267,20 @@ class TestValidationRanges:
         with pytest.raises(ConfigError, match="colour_confidence_min"):
             Config(path)
 
+    def test_decision_min_out_of_range(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        data["thresholds"]["decision_min"] = 1.5
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="decision_min"):
+            Config(path)
+
+    def test_decision_min_missing_raises(self, valid_data, tmp_path):
+        data = copy.deepcopy(valid_data)
+        del data["thresholds"]["decision_min"]
+        path = write_config(data, tmp_path)
+        with pytest.raises(ConfigError, match="decision_min"):
+            Config(path)
+
     def test_baud_too_low(self, valid_data, tmp_path):
         data = copy.deepcopy(valid_data)
         data["uart"]["baud"] = 300

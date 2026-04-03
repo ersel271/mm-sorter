@@ -27,8 +27,7 @@ class RunningMetrics:
 
     def __init__(self) -> None:
         self._total = 0
-        self._accepted = 0
-        self._rejected = 0
+        self._low_confidence = 0
         self._per_class: dict[int, int] = defaultdict(int)
         self._confidence_sum = 0.0
         self._frame_ms_sum = 0.0
@@ -36,10 +35,8 @@ class RunningMetrics:
     def update(self, event: VisionEvent) -> None:
         """update counters from a single VisionEvent"""
         self._total += 1
-        if event.decision == "ACCEPT":
-            self._accepted += 1
-        else:
-            self._rejected += 1
+        if event.low_confidence:
+            self._low_confidence += 1
         self._per_class[event.class_id] += 1
         self._confidence_sum += event.confidence
         self._frame_ms_sum += event.frame_ms
@@ -49,12 +46,8 @@ class RunningMetrics:
         return self._total
 
     @property
-    def accepted(self) -> int:
-        return self._accepted
-
-    @property
-    def rejected(self) -> int:
-        return self._rejected
+    def low_confidence(self) -> int:
+        return self._low_confidence
 
     def class_count(self, class_id: int) -> int:
         """return total predictions for a given class_id"""
@@ -75,12 +68,11 @@ class RunningMetrics:
     def snapshot(self) -> dict:
         """return a plain dict snapshot of all current metrics"""
         return {
-            "total": self._total,
-            "accepted": self._accepted,
-            "rejected": self._rejected,
+            "total":           self._total,
+            "low_confidence":  self._low_confidence,
             "mean_confidence": self.mean_confidence,
-            "mean_frame_ms": self.mean_frame_ms,
-            "per_class": dict(self._per_class),
+            "mean_frame_ms":   self.mean_frame_ms,
+            "per_class":       dict(self._per_class),
         }
 
 def confusion_matrix(pairs: list[tuple[int, int]], num_classes: int) -> list[list[int]]:

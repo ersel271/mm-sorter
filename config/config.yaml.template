@@ -48,6 +48,9 @@ thresholds:
   colour_confidence_min: 0.15     # minimum hue overlap fraction to accept a colour
   colour_ambiguity_epsilon: 0.10  # minimum confidence gap between top two colour candidates
 
+  # stage 4: accept/reject decision
+  decision_min: 0.5               # minimum confidence to classify as a colour (0.0--1.0)
+
 colours:
   # each colour defines h (hue ranges), s (saturation range), v (value range)
   # h supports multiple [min, max] pairs for wrap-around hues like red

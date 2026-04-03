@@ -54,13 +54,12 @@ class TestEventPipelineIntegration:
     def test_metrics_updated_by_worker_after_stop(self, tmp_cfg):
         m = RunningMetrics()
         worker = EventQueueWorker(tmp_cfg, metrics=m)
-        worker.enqueue(make_event(decision="ACCEPT"))
-        worker.enqueue(make_event(decision="ACCEPT"))
-        worker.enqueue(make_event(decision="REJECT"))
+        worker.enqueue(make_event(low_confidence=False))
+        worker.enqueue(make_event(low_confidence=False))
+        worker.enqueue(make_event(low_confidence=True))
         worker.stop()
         assert m.total == 3
-        assert m.accepted == 2
-        assert m.rejected == 1
+        assert m.low_confidence == 1
 
     def test_metrics_mean_confidence_reflects_events(self, tmp_cfg):
         m = RunningMetrics()

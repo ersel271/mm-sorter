@@ -14,7 +14,7 @@ valid_confidence = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allo
 valid_frame_ms = st.floats(min_value=0.0, max_value=1000.0, allow_nan=False, allow_infinity=False)
 pair = st.tuples(valid_index, valid_index)
 pairs = st.lists(pair, max_size=100)
-decisions = st.lists(st.sampled_from(["ACCEPT", "REJECT"]), max_size=100)
+low_conf_flags = st.lists(st.booleans(), max_size=100)
 
 # confusion matrix cells must never be negative for any input
 @given(n=num_classes, pairs=pairs)
@@ -66,7 +66,7 @@ def test_normalised_values_in_unit_interval(matrix):
 @given(matrix=square_non_negative_int_matrix())
 @pytest.mark.property
 def test_non_zero_rows_sum_to_one(matrix):
-    for raw_row, norm_row in zip(matrix, normalise_confusion_matrix(matrix)):
+    for raw_row, norm_row in zip(matrix, normalise_confusion_matrix(matrix), strict=True):
         if sum(raw_row) > 0:
             assert sum(norm_row) == pytest.approx(1.0)
 
@@ -74,7 +74,7 @@ def test_non_zero_rows_sum_to_one(matrix):
 @given(matrix=square_non_negative_int_matrix())
 @pytest.mark.property
 def test_zero_rows_stay_zero(matrix):
-    for raw_row, norm_row in zip(matrix, normalise_confusion_matrix(matrix)):
+    for raw_row, norm_row in zip(matrix, normalise_confusion_matrix(matrix), strict=True):
         if sum(raw_row) == 0:
             assert all(v == 0.0 for v in norm_row)
 
@@ -86,20 +86,20 @@ def test_normalised_dimensions_match_input(matrix):
     assert len(result) == len(matrix)
     assert all(len(result[i]) == len(matrix[i]) for i in range(len(matrix)))
 
-# total must always equal accepted + rejected regardless of event sequence
-@given(decisions=decisions, confidence=valid_confidence, frame_ms=valid_frame_ms)
+# low_confidence count must never exceed total regardless of event sequence
+@given(flags=low_conf_flags, confidence=valid_confidence, frame_ms=valid_frame_ms)
 @pytest.mark.property
-def test_total_equals_accepted_plus_rejected(decisions, confidence, frame_ms):
+def test_low_confidence_never_exceeds_total(flags, confidence, frame_ms):
     m = RunningMetrics()
-    for d in decisions:
-        m.update(make_event(decision=d, confidence=confidence, frame_ms=frame_ms))
-    assert m.total == m.accepted + m.rejected
+    for f in flags:
+        m.update(make_event(low_confidence=f, confidence=confidence, frame_ms=frame_ms))
+    assert m.low_confidence <= m.total
 
 # mean_confidence must stay within [0.0, 1.0] when fed valid confidence values
-@given(decisions=decisions.filter(bool), confidence=valid_confidence)
+@given(flags=low_conf_flags.filter(bool), confidence=valid_confidence)
 @pytest.mark.property
-def test_mean_confidence_in_unit_interval(decisions, confidence):
+def test_mean_confidence_in_unit_interval(flags, confidence):
     m = RunningMetrics()
-    for d in decisions:
-        m.update(make_event(decision=d, confidence=confidence))
+    for f in flags:
+        m.update(make_event(low_confidence=f, confidence=confidence))
     assert 0.0 <= m.mean_confidence <= 1.0

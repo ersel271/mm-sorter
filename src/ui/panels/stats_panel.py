@@ -13,8 +13,7 @@ from src.ui.panel import (
 )
 from utils.metrics import RunningMetrics
 
-_ACCEPT_COLOUR: tuple[int, int, int] = (  0, 170, 110)
-_REJECT_COLOUR: tuple[int, int, int] = ( 50,  80, 210)
+_LOW_CONF_COLOUR: tuple[int, int, int] = (50, 80, 210)
 
 _ALL_COLOURS: list[ColourID] = [
     ColourID.RED, ColourID.GREEN, ColourID.BLUE,
@@ -38,18 +37,12 @@ class StatsPanel(Panel):
 
         m = self._metrics
         total    = m.total
-        accepted = m.accepted
-        rejected = m.rejected
-        rate     = accepted / total if total > 0 else 0.0
+        low_conf = m.low_confidence
 
         y = 54
-        cv2.putText(panel, f"Total:   {total}",        (12, y), FONT, 0.44, TEXT_COLOUR,    1, cv2.LINE_AA)
+        cv2.putText(panel, f"Total:    {total}",    (12, y), FONT, 0.44, TEXT_COLOUR,     1, cv2.LINE_AA)
         y += 20
-        cv2.putText(panel, f"Accept:  {accepted}",     (12, y), FONT, 0.44, _ACCEPT_COLOUR, 1, cv2.LINE_AA)
-        y += 20
-        cv2.putText(panel, f"Reject:  {rejected}",     (12, y), FONT, 0.44, _REJECT_COLOUR, 1, cv2.LINE_AA)
-        y += 20
-        cv2.putText(panel, f"Rate:    {rate:.0%}",     (12, y), FONT, 0.44, DIM_COLOUR,     1, cv2.LINE_AA)
+        cv2.putText(panel, f"Low Conf: {low_conf}", (12, y), FONT, 0.44, _LOW_CONF_COLOUR, 1, cv2.LINE_AA)
         y += 26
 
         cv2.line(panel, (8, y), (PANEL_W - 8, y), PANEL_SEP_COLOUR, 1)

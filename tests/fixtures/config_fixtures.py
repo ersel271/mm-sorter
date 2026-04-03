@@ -52,6 +52,7 @@ def valid_data() -> dict:
             "solidity_min": 0.90,
             "colour_confidence_min": 0.15,
             "colour_ambiguity_epsilon": 0.10,
+            "decision_min": 0.5,
         },
         "colours": {
             "red": {
