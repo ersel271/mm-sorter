@@ -2,8 +2,8 @@
 
 import pytest
 
-from utils.metrics import confusion_matrix, per_class_metrics, accuracy
 from tests.helpers.events_helpers import make_event
+from utils.metrics import confusion_matrix, per_class_metrics, accuracy, normalise_confusion_matrix
 
 @pytest.mark.unit
 class TestRunningMetricsCounters:
@@ -182,3 +182,30 @@ class TestAccuracy:
 
     def test_empty_matrix_returns_zero(self):
         assert accuracy([[0, 0], [0, 0]]) == pytest.approx(0.0)
+
+@pytest.mark.unit
+class TestNormaliseConfusionMatrix:
+    """verify row-normalisation of confusion matrices"""
+
+    def test_perfect_diagonal_normalises_to_ones(self):
+        mat = [[3, 0], [0, 2]]
+        result = normalise_confusion_matrix(mat)
+        assert result[0] == pytest.approx([1.0, 0.0])
+        assert result[1] == pytest.approx([0.0, 1.0])
+
+    def test_row_sums_to_one(self):
+        mat = [[2, 1], [1, 3]]
+        result = normalise_confusion_matrix(mat)
+        for row in result:
+            assert sum(row) == pytest.approx(1.0)
+
+    def test_zero_row_returns_zeros(self):
+        mat = [[0, 0], [1, 1]]
+        result = normalise_confusion_matrix(mat)
+        assert result[0] == pytest.approx([0.0, 0.0])
+
+    def test_output_shape_matches_input(self):
+        mat = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+        result = normalise_confusion_matrix(mat)
+        assert len(result) == 3
+        assert all(len(row) == 3 for row in result)

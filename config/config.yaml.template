@@ -86,6 +86,7 @@ system:
   log_dir: data/logs         # directory for runtime log files
   event_dir: data/events     # directory for structured vision event logs
   sample_dir: data/samples   # directory for captured sample images
+  plot_dir: data/plots       # directory for offline analysis plot exports
   log_queue_size: 256        # bounded queue size for async logging
   found_frames_min: 3        # consecutive found frames before recording; 1 = record on first frame
   display_enabled: true      # show live annotated video window

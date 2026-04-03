@@ -71,6 +71,7 @@ _REQUIRED_FIELDS: dict[str, dict[str, type | tuple[type, ...] | None]] = {
         "log_dir": str,
         "event_dir": str,
         "sample_dir": str,
+        "plot_dir": str,
         "log_queue_size": int,
     },
 }

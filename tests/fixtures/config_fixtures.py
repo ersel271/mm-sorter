@@ -69,6 +69,7 @@ def valid_data() -> dict:
             "log_dir": "data/logs",
             "event_dir": "data/events",
             "sample_dir": "data/samples",
+            "plot_dir": "data/plots",
             "log_queue_size": 256,
             "display_enabled": True,
             "display_scale": 1.0,

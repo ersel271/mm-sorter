@@ -121,3 +121,12 @@ def accuracy(matrix: list[list[int]]) -> float:
     total = sum(matrix[r][c] for r in range(len(matrix)) for c in range(len(matrix[r])))
     correct = sum(matrix[i][i] for i in range(len(matrix)))
     return correct / total if total > 0 else 0.0
+
+def normalise_confusion_matrix(matrix: list[list[int]]) -> list[list[float]]:
+    """row-normalise a confusion matrix so each row sums to 1.
+    rows with zero total are returned as all-zeros"""
+    result = []
+    for row in matrix:
+        total = sum(row)
+        result.append([v / total if total > 0 else 0.0 for v in row])
+    return result
