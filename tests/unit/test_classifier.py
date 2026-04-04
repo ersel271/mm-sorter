@@ -2,11 +2,10 @@
 
 import pytest
 
-from config import Config
 from config.constants import ColourID
 from src.vision import Classifier
 from src.vision.rule import Decision, Rule, _RULE_REGISTRY
-from tests.helpers.features_helpers import make_features
+from tests.helpers.vision_helpers import make_features
 
 class _AlwaysRejectRule(Rule):
     name = "mock_reject"
@@ -30,60 +29,53 @@ class _NeverFireRule(Rule):
         return None
 
 @pytest.mark.smoke
-@pytest.mark.unit
 class TestClassifierFallback:
     """verify safe fallback when no rules fire."""
 
-    def test_empty_rule_list_returns_non_mm(self):
-        c = Classifier(Config(), rules=[])
+    def test_empty_rule_list_returns_non_mm(self, default_cfg):
+        c = Classifier(default_cfg, rules=[])
         d = c.classify(make_features())
         assert d.label == ColourID.NON_MM
 
-    def test_fallback_rule_name_is_none(self):
-        c = Classifier(Config(), rules=[])
+    def test_fallback_rule_name_is_none(self, default_cfg):
+        c = Classifier(default_cfg, rules=[])
         d = c.classify(make_features())
         assert d.rule == "none"
 
-    def test_fallback_priority_is_sentinel(self):
-        c = Classifier(Config(), rules=[])
+    def test_fallback_priority_is_sentinel(self, default_cfg):
+        c = Classifier(default_cfg, rules=[])
         d = c.classify(make_features())
         assert d.priority == 999
 
-    def test_never_fire_rule_still_returns_fallback(self):
-        cfg = Config()
-        c = Classifier(cfg, rules=[_NeverFireRule(cfg)])
+    def test_never_fire_rule_still_returns_fallback(self, default_cfg):
+        c = Classifier(default_cfg, rules=[_NeverFireRule(default_cfg)])
         d = c.classify(make_features())
         assert d.label == ColourID.NON_MM
         assert d.rule == "none"
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestClassifierSelection:
     """verify priority-then-confidence winner selection."""
 
-    def test_lower_priority_number_wins_over_higher_confidence(self):
+    def test_lower_priority_number_wins_over_higher_confidence(self, default_cfg):
         # reject(p=10, c=0.75) beats colour(p=30, c=0.95)
-        cfg = Config()
-        c = Classifier(cfg, rules=[_AlwaysRejectRule(cfg), _AlwaysColourRule(cfg)])
+        c = Classifier(default_cfg, rules=[_AlwaysRejectRule(default_cfg), _AlwaysColourRule(default_cfg)])
         d = c.classify(make_features())
         assert d.label == ColourID.NON_MM
         assert d.rule == "mock_reject"
 
-    def test_single_firing_rule_is_returned(self):
-        cfg = Config()
-        c = Classifier(cfg, rules=[_AlwaysRejectRule(cfg)])
+    def test_single_firing_rule_is_returned(self, default_cfg):
+        c = Classifier(default_cfg, rules=[_AlwaysRejectRule(default_cfg)])
         d = c.classify(make_features())
         assert d.label == ColourID.NON_MM
         assert d.confidence == pytest.approx(0.75)
 
-    def test_no_fire_rule_does_not_influence_result(self):
-        cfg = Config()
-        c = Classifier(cfg, rules=[_NeverFireRule(cfg), _AlwaysColourRule(cfg)])
+    def test_no_fire_rule_does_not_influence_result(self, default_cfg):
+        c = Classifier(default_cfg, rules=[_NeverFireRule(default_cfg), _AlwaysColourRule(default_cfg)])
         d = c.classify(make_features())
         assert d.rule == "mock_colour"
 
-    def test_same_priority_higher_confidence_wins(self):
-        cfg = Config()
-
+    def test_same_priority_higher_confidence_wins(self, default_cfg):
         class _LowConf(Rule):
             name = "low_conf"
             priority = 10
@@ -96,46 +88,41 @@ class TestClassifierSelection:
             def apply(self, f):
                 return Decision(ColourID.NON_MM, 0.80, self.name, self.priority)
 
-        c = Classifier(cfg, rules=[_LowConf(cfg), _HighConf(cfg)])
+        c = Classifier(default_cfg, rules=[_LowConf(default_cfg), _HighConf(default_cfg)])
         d = c.classify(make_features())
         assert d.rule == "high_conf"
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestClassifierInjection:
     """verify injection path isolation from global registry."""
 
-    def test_injected_rules_only_run(self):
-        cfg = Config()
+    def test_injected_rules_only_run(self, default_cfg):
         registry_before = list(_RULE_REGISTRY)
-        c = Classifier(cfg, rules=[_AlwaysRejectRule(cfg)])
+        c = Classifier(default_cfg, rules=[_AlwaysRejectRule(default_cfg)])
         d = c.classify(make_features())
         assert d.rule == "mock_reject"
         assert list(_RULE_REGISTRY) == registry_before
 
-    def test_registry_unchanged_after_injection(self):
+    def test_registry_unchanged_after_injection(self, default_cfg):
         registry_before = list(_RULE_REGISTRY)
-        cfg = Config()
-        Classifier(cfg, rules=[_AlwaysColourRule(cfg)])
+        Classifier(default_cfg, rules=[_AlwaysColourRule(default_cfg)])
         assert list(_RULE_REGISTRY) == registry_before
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestClassifierRulesProperty:
     """verify the rules accessor."""
 
-    def test_rules_returns_list(self):
-        cfg = Config()
-        c = Classifier(cfg, rules=[_AlwaysRejectRule(cfg), _AlwaysColourRule(cfg)])
+    def test_rules_returns_list(self, default_cfg):
+        c = Classifier(default_cfg, rules=[_AlwaysRejectRule(default_cfg), _AlwaysColourRule(default_cfg)])
         assert isinstance(c.rules, list)
 
-    def test_rules_sorted_by_priority(self):
-        cfg = Config()
+    def test_rules_sorted_by_priority(self, default_cfg):
         # pass colour first (p=30) then reject (p=10), should come out sorted
-        c = Classifier(cfg, rules=[_AlwaysColourRule(cfg), _AlwaysRejectRule(cfg)])
+        c = Classifier(default_cfg, rules=[_AlwaysColourRule(default_cfg), _AlwaysRejectRule(default_cfg)])
         priorities = [r.priority for r in c.rules]
         assert priorities == sorted(priorities)
 
-    def test_rules_is_a_copy(self):
-        cfg = Config()
-        c = Classifier(cfg, rules=[_AlwaysRejectRule(cfg)])
+    def test_rules_is_a_copy(self, default_cfg):
+        c = Classifier(default_cfg, rules=[_AlwaysRejectRule(default_cfg)])
         c.rules.clear()
         assert len(c.rules) == 1

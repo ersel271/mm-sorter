@@ -1,15 +1,13 @@
 # tests/unit/test_panel_decision.py
 
-import pytest
 import numpy as np
 
 from config.constants import ColourID
 from src.ui.panels import DecisionPanel
 from src.ui.panel import PANEL_W
 from src.vision.rule import Priority
-from tests.helpers.features_helpers import make_features, make_decision
+from tests.helpers.vision_helpers import make_features, make_decision
 
-@pytest.mark.unit
 class TestDecisionPanelShape:
     """verify DecisionPanel output matches the (panel_h, PANEL_W, 3) contract."""
 
@@ -24,7 +22,6 @@ class TestDecisionPanelShape:
         for h in (200, 400, 600, 800):
             assert decision_panel.render(None, None, h).shape == (h, PANEL_W, 3)
 
-@pytest.mark.unit
 class TestDecisionPanelDtype:
     """verify DecisionPanel always returns a uint8 array."""
 
@@ -34,7 +31,6 @@ class TestDecisionPanelDtype:
     def test_dtype_with_full_inputs(self, decision_panel: DecisionPanel) -> None:
         assert decision_panel.render(make_features(), make_decision(), 300).dtype == np.uint8
 
-@pytest.mark.unit
 class TestDecisionPanelColours:
     """verify DecisionPanel handles all ColourID values without crashing."""
 
@@ -43,7 +39,6 @@ class TestDecisionPanelColours:
             dec = make_decision(label=colour_id)
             assert decision_panel.render(make_features(), dec, 400) is not None
 
-@pytest.mark.unit
 class TestDecisionPanelRejectionLogic:
     """verify rejection footer and stage display paths are exercised."""
 

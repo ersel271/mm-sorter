@@ -4,12 +4,10 @@ import logging
 import time
 from pathlib import Path
 
-import pytest
 import numpy as np
 
 from src.ui.panels.log_panel import LogPanel, _STRIP_H
 
-@pytest.mark.unit
 class TestLogPanelShape:
     """verify LogPanel.render produces the correct (_STRIP_H, total_w, 3) strip."""
 
@@ -23,14 +21,12 @@ class TestLogPanelShape:
     def test_dtype_uint8(self, log_panel: LogPanel) -> None:
         assert log_panel.render(640).dtype == np.uint8
 
-@pytest.mark.unit
 class TestLogPanelStripH:
     """verify strip_h property exposes the correct constant."""
 
     def test_strip_h_matches_module_constant(self, log_panel: LogPanel) -> None:
         assert log_panel.strip_h == _STRIP_H
 
-@pytest.mark.unit
 class TestLogPanelSafety:
     """verify LogPanel behaves correctly without a log file."""
 
@@ -42,7 +38,6 @@ class TestLogPanelSafety:
         log_panel.close()
         log_panel.close()
 
-@pytest.mark.unit
 class TestLogPanelWithFile:
     """verify LogPanel reads from a real log file and renders lines."""
 

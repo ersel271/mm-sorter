@@ -16,7 +16,7 @@ from utils.events import (
 )
 from tests.helpers.events_helpers import make_event
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestVisionEventFields:
     """verify event dataclass field names do not collide with logging reserved names"""
 
@@ -39,7 +39,7 @@ class TestVisionEventFields:
         with pytest.raises(ValueError, match="ts_wall"):
             check_reserved_fields()
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestSerialiseEvent:
     """verify JSON serialisation correctness"""
 
@@ -60,7 +60,7 @@ class TestSerialiseEvent:
         reconstructed = VisionEvent(**asdict(sample_event))
         assert reconstructed == sample_event
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestEventWriter:
     """verify JSONL file creation, append behaviour, and per-event flush"""
 
@@ -104,7 +104,8 @@ class TestEventWriter:
     def test_path_property_is_path_object(self, event_writer):
         assert isinstance(event_writer.path, Path)
 
-@pytest.mark.unit
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestEventQueueWorker:
     """verify async enqueue, background write, drop-newest policy, and shutdown"""
 

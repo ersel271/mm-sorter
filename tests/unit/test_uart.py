@@ -8,7 +8,6 @@ from config.constants import UART_SEPARATOR, UART_TERMINATOR
 from tests.helpers.uart_helpers import sample_fields
 
 @pytest.mark.smoke
-@pytest.mark.unit
 class TestBuildPacket:
     """verify packet serialisation format, extensibility, and edge cases."""
 
@@ -53,7 +52,7 @@ class TestBuildPacket:
         pkt = build_packet({"id": 1, "class": 3})
         assert pkt == b"1;3\n"
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestUARTSenderOpen:
     """verify open() behaviour for available and unavailable ports."""
 
@@ -66,7 +65,8 @@ class TestUARTSenderOpen:
     def test_open_already_open(self, sender):
         assert sender.open() is True
 
-@pytest.mark.unit
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestUARTSenderSend:
     """verify send() writes correct packets and handles failures gracefully."""
 
@@ -118,7 +118,8 @@ class TestUARTSenderSend:
         warnings = [r for r in caplog.records if r.levelname == "WARNING"]
         assert len(warnings) == 1
 
-@pytest.mark.unit
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestUARTSenderReceive:
     """verify receive() decoding, timeout handling, and error recovery."""
 
@@ -152,7 +153,7 @@ class TestUARTSenderReceive:
         assert result is None
         assert sender.is_open is False
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestUARTSenderClose:
     """verify close() cleans up state and calls port.close()."""
 

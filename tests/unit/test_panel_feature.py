@@ -1,13 +1,11 @@
 # tests/unit/test_panel_feature.py
 
-import pytest
 import numpy as np
 
 from src.ui.panels import FeaturePanel
 from src.ui.panel import PANEL_W
-from tests.helpers.features_helpers import make_features
+from tests.helpers.vision_helpers import make_features
 
-@pytest.mark.unit
 class TestFeaturePanelShape:
     """verify FeaturePanel output matches the (panel_h, PANEL_W, 3) contract."""
 
@@ -24,7 +22,6 @@ class TestFeaturePanelShape:
             out = feature_panel.render(None, None, h)
             assert out.shape == (h, PANEL_W, 3)
 
-@pytest.mark.unit
 class TestFeaturePanelDtype:
     """verify FeaturePanel always returns a uint8 array."""
 
@@ -34,7 +31,6 @@ class TestFeaturePanelDtype:
     def test_dtype_with_features(self, feature_panel: FeaturePanel) -> None:
         assert feature_panel.render(make_features(), None, 300).dtype == np.uint8
 
-@pytest.mark.unit
 class TestFeaturePanelSafety:
     """verify FeaturePanel does not crash on edge-case inputs."""
 
