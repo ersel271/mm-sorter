@@ -2,17 +2,16 @@
 
 import pytest
 
-from config import Config
 from src.vision import Classifier, FeatureExtractor, Preprocessor
 
 @pytest.fixture
-def prep() -> Preprocessor:
-    return Preprocessor(Config())
+def prep(default_cfg) -> Preprocessor:
+    return Preprocessor(default_cfg)
 
 @pytest.fixture
-def extractor() -> FeatureExtractor:
-    return FeatureExtractor(Config())
+def extractor(default_cfg) -> FeatureExtractor:
+    return FeatureExtractor(default_cfg)
 
 @pytest.fixture
-def classifier() -> Classifier:
-    return Classifier(Config())
+def classifier(default_cfg) -> Classifier:
+    return Classifier(default_cfg)
