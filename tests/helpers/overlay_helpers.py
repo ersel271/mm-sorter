@@ -5,7 +5,7 @@ from dataclasses import replace
 import numpy as np
 
 from src.ui import Overlay
-from tests.helpers.features_helpers import make_decision, make_features, make_preprocess_result
+from tests.helpers.vision_helpers import make_decision, make_features, make_preprocess_result
 
 NOT_FOUND = replace(
     make_preprocess_result(),
