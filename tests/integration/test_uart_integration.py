@@ -6,7 +6,8 @@ import serial
 from config.constants import UART_SEPARATOR
 from tests.helpers.uart_helpers import sample_fields
 
-@pytest.mark.integration
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestUARTIntegration:
     """verify full send cycles and disconnect recovery."""
 

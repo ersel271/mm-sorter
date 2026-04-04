@@ -9,7 +9,8 @@ from utils.events import EventQueueWorker
 from utils.metrics import RunningMetrics
 from tests.helpers.events_helpers import make_event
 
-@pytest.mark.integration
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestEventPipelineIntegration:
     """verify end-to-end event flow: enqueue -> background write -> JSONL on disk."""
 

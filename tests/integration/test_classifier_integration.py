@@ -1,17 +1,15 @@
 # tests/integration/test_classifier_integration.py
 
-import copy
-
 import pytest
 
-from config import Config
 from config.constants import ColourID
 from src.vision import Classifier
-from tests.helpers.config_helpers import write_config
-from tests.helpers.features_helpers import make_preprocess_result, make_features
+from tests.helpers.config_helpers import make_config
+from tests.helpers.vision_helpers import make_preprocess_result, make_features
 from tests.helpers.image_helpers import draw_saturated_circle, make_frame
 
-@pytest.mark.integration
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestClassifierPipelineIntegration:
     """verify the full preprocess → features → classify pipeline."""
 
@@ -35,18 +33,15 @@ class TestClassifierPipelineIntegration:
         f = make_features()
         classifier.classify(f)
 
-    def test_lower_sat_threshold_stops_low_sat_rejection(self, valid_data, tmp_path):
+    def test_lower_sat_threshold_stops_low_sat_rejection(self, default_cfg):
         # with default sat_min=60, sat_mean=50 triggers LowSaturationRule
-        default_cfg = Config()
         default_classifier = Classifier(default_cfg)
         f = make_features(sat_mean=50.0)
         d_default = default_classifier.classify(f)
         assert d_default.rule == "low_saturation"
 
         # lower sat_min to 30, sat_mean=50 no longer triggers it
-        data = copy.deepcopy(valid_data)
-        data["thresholds"]["sat_min"] = 30
-        low_cfg = Config(write_config(data, tmp_path))
+        low_cfg = make_config(thresholds={"sat_min": 30})
         low_classifier = Classifier(low_cfg)
         d_low = low_classifier.classify(f)
         assert d_low.rule != "low_saturation"

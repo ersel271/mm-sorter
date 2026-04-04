@@ -2,7 +2,7 @@
 
 import pytest
 
-@pytest.mark.integration
+@pytest.mark.smoke
 class TestConfigIntegration:
     """verify the default config.yaml is internally consistent."""
 
