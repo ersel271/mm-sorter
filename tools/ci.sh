@@ -3,36 +3,35 @@
 # local CI pipeline: lint, typecheck, test, deadcode, complexity, security
 # usage: bash tools/ci.sh [stage]
 #   stages: lint, fix, typecheck, test, deadcode, complexity, security
-#   no argument runs all stages in order (fix excluded -- mutates files)
+#   no argument runs all stages in parallel (fix excluded -- mutates files)
 
 set -uo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REPORT_DIR="$PROJECT_ROOT/_report"
+TARGETS=("$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/sort.py")
 
 stage_lint() {
     local rc=0
-    ruff check "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests" || rc=1
-    # ruff format --check "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests" || rc=1
+    ruff check "${TARGETS[@]}" "$PROJECT_ROOT/tests" || rc=1
     return $rc
 }
 
 stage_fix() {
-    ruff check --fix "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests"
-    # ruff format "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" "$PROJECT_ROOT/tests"
+    ruff check --fix "${TARGETS[@]}" "$PROJECT_ROOT/tests"
 }
 
 stage_typecheck() {
-    mypy "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils"
+    mypy "${TARGETS[@]}"
 }
 
 stage_test() {
-    bash "$PROJECT_ROOT/tools/run_tests.sh" -m "not hw and not slow"
+    bash "$PROJECT_ROOT/tools/run_tests.sh" -n auto
 }
 
 stage_deadcode() {
     local out
-    out=$(vulture "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" \
+    out=$(vulture "${TARGETS[@]}" \
         "$PROJECT_ROOT/vulture_whitelist.py" \
         --min-confidence 80)
     if [ -z "$out" ]; then
@@ -44,18 +43,18 @@ stage_deadcode() {
 }
 
 stage_complexity() {
-    radon cc "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" -s -a \
+    radon cc "${TARGETS[@]}" -s -a \
         > "$REPORT_DIR/radon_cc.txt"
-    radon mi "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" -s \
+    radon mi "${TARGETS[@]}" -s \
         > "$REPORT_DIR/radon_mi.txt"
     echo "reports written to _report/radon_cc.txt and _report/radon_mi.txt"
     # thresholds: single block max C, per-module average max C, overall average max A
     xenon --max-absolute C --max-modules C --max-average A \
-        "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils"
+        "${TARGETS[@]}"
 }
 
 stage_security() {
-    bandit -r "$PROJECT_ROOT/src" "$PROJECT_ROOT/config" "$PROJECT_ROOT/utils" \
+    bandit -r "${TARGETS[@]}" \
         -f txt -o "$REPORT_DIR/bandit.txt"
     pip-audit -r "$PROJECT_ROOT/requirements.txt" \
         > "$REPORT_DIR/pip_audit.txt"
@@ -70,12 +69,11 @@ _run() {
         return 1
     fi
     local log="$REPORT_DIR/${name}.log"
-    printf "stage: %-10s ... " "${name}"
     if "stage_${name}" > "$log" 2>&1; then
-        echo "passed"
+        printf "stage: %-10s ... passed\n" "${name}"
         return 0
     else
-        echo "failed, see _report/${name}.log"
+        printf "stage: %-10s ... failed, see _report/${name}.log\n" "${name}"
         return 1
     fi
 }
@@ -83,14 +81,20 @@ _run() {
 main() {
     mkdir -p "$REPORT_DIR"
     echo "pipeline started"
+
+    pids=()
+    trap 'trap "" INT TERM; kill 0; exit 130' INT TERM
+    _run lint       & pids+=($!)
+    _run typecheck  & pids+=($!)
+    _run test       & pids+=($!)
+    _run deadcode   & pids+=($!)
+    _run complexity & pids+=($!)
+    _run security   & pids+=($!)
+
     local failed=0
-    
-    _run lint       || failed=1
-    _run typecheck  || failed=1
-    _run test       || failed=1
-    _run deadcode   || failed=1
-    _run complexity || failed=1
-    _run security   || failed=1
+    for pid in "${pids[@]}"; do
+        wait "$pid" || failed=1
+    done
 
     echo ""
     if [ "$failed" -eq 0 ]; then
