@@ -2,7 +2,6 @@
 
 import pytest
 
-from config import Config
 from src.ui import Overlay
 from utils.metrics import RunningMetrics
 from tests.helpers.config_helpers import make_config
