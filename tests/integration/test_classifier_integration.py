@@ -11,7 +11,7 @@ from tests.helpers.image_helpers import draw_saturated_circle, make_frame
 @pytest.mark.smoke
 @pytest.mark.regression
 class TestClassifierPipelineIntegration:
-    """verify the full preprocess → features → classify pipeline."""
+    """verify the full preprocess, features, classify pipeline."""
 
     def test_full_pipeline_returns_valid_colour_id(self, prep, extractor, classifier):
         frame = draw_saturated_circle(make_frame(), radius=60)
