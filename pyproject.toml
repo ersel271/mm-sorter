@@ -9,6 +9,7 @@ select = ["F", "UP", "B", "C4", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/__init__.py" = ["F401"]
+"tests/vulture_whitelist.py" = ["F403"]
 
 [tool.mypy]
 python_version = "3.13"
