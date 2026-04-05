@@ -7,7 +7,7 @@ import pytest
 
 from src.vision.features import FeatureExtractor, Features
 from tests.helpers.config_helpers import make_config
-from tests.helpers.vision_helpers import make_preprocess_result
+from tests.helpers.vision_helpers import make_features, make_preprocess_result
 
 @pytest.mark.smoke
 @pytest.mark.regression
@@ -228,3 +228,37 @@ class TestSolidity:
         )
         features = extractor.extract(result)
         assert features.solidity == 0.0
+
+class TestFeaturesEquality:
+    """verify __eq__ and __hash__ correctness on the Features dataclass."""
+
+    def test_identical_features_are_equal(self):
+        f = make_features()
+        assert f == make_features()
+
+    def test_reflexivity(self):
+        f = make_features()
+        assert f == f
+
+    def test_different_hue_hist_not_equal(self):
+        hist_a = np.zeros(180)
+        hist_a[30] = 1.0
+        hist_b = np.zeros(180)
+        hist_b[90] = 1.0
+        assert make_features(hue_hist=hist_a) != make_features(hue_hist=hist_b)
+
+    def test_different_scalar_field_not_equal(self):
+        assert make_features(sat_mean=100.0) != make_features(sat_mean=200.0)
+
+    def test_not_equal_to_non_features(self):
+        assert make_features() != "not a Features object"
+
+    def test_equal_features_have_same_hash(self):
+        assert hash(make_features()) == hash(make_features())
+
+    def test_different_hue_hist_different_hash(self):
+        hist_a = np.zeros(180)
+        hist_a[10] = 1.0
+        hist_b = np.zeros(180)
+        hist_b[100] = 1.0
+        assert hash(make_features(hue_hist=hist_a)) != hash(make_features(hue_hist=hist_b))
