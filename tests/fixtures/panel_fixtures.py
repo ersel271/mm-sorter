@@ -2,7 +2,6 @@
 
 import pytest
 
-from config import Config
 from src.ui.panels import FeaturePanel, DecisionPanel, StatsPanel
 from src.ui.panels.log_panel import LogPanel
 from tests.helpers.events_helpers import make_metrics
@@ -12,8 +11,8 @@ def feature_panel() -> FeaturePanel:
     return FeaturePanel()
 
 @pytest.fixture
-def decision_panel() -> DecisionPanel:
-    return DecisionPanel(Config())
+def decision_panel(default_cfg) -> DecisionPanel:
+    return DecisionPanel(default_cfg)
 
 @pytest.fixture
 def stats_panel() -> StatsPanel:

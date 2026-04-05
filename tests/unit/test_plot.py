@@ -9,7 +9,7 @@ from utils.plot import PlotData, PlotQueueWorker, generate_dashboard
 
 _CLASS_NAMES = [v.lower().replace("&", "") for v in COLOUR_NAMES.values()]
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestPlotData:
     """verify PlotData dataclass construction"""
 
@@ -23,7 +23,7 @@ class TestPlotData:
                         class_names=_CLASS_NAMES, ground_truth=[0])
         assert data.ground_truth == [0]
 
-@pytest.mark.unit
+@pytest.mark.visual
 class TestGenerateDashboard:
     """verify generate_dashboard saves files to disk"""
 
@@ -52,7 +52,7 @@ class TestGenerateDashboard:
         assert "plot_sess_error_breakdown.png" in names
         assert "plot_sess_confidence_vs_accuracy.png" in names
 
-@pytest.mark.unit
+@pytest.mark.visual
 class TestPlotQueueWorker:
     """verify PlotQueueWorker enqueues, drops, and drains correctly"""
 

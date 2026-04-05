@@ -3,13 +3,11 @@
 import numpy as np
 import pytest
 
-from config import Config
-from tests.helpers.config_helpers import write_config
 from src.vision.preprocess import Preprocessor
+from tests.helpers.config_helpers import make_config
 from tests.helpers.image_helpers import make_frame, draw_saturated_circle
 
 @pytest.mark.smoke
-@pytest.mark.unit
 class TestPreprocessResult:
     """verify PreprocessResult fields for found and not-found cases."""
 
@@ -39,7 +37,7 @@ class TestPreprocessResult:
         assert result.gray is not None
         assert result.mask is not None
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestMask:
     """verify binary mask generation from saturation thresholding."""
 
@@ -64,7 +62,8 @@ class TestMask:
         result = prep.process(frame)
         assert np.count_nonzero(result.mask) == 0
 
-@pytest.mark.unit
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestContour:
     """verify contour detection selects the largest object."""
 
@@ -87,7 +86,7 @@ class TestContour:
         result = prep.process(frame)
         assert result.found is False
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestCentroid:
     """verify centroid is computed near the object centre."""
 
@@ -109,7 +108,7 @@ class TestCentroid:
         assert abs(cx - centre[0]) < 15
         assert abs(cy - centre[1]) < 15
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestBoundingBox:
     """verify bounding box encloses the detected object."""
 
@@ -133,7 +132,7 @@ class TestBoundingBox:
         assert radius < w < radius * 3
         assert radius < h < radius * 3
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestROI:
     """verify ROI extraction with and without cropping enabled."""
 
@@ -143,22 +142,7 @@ class TestROI:
         assert result.roi.shape[:2] == (1080, 1920)
 
     def test_roi_enabled_crops_frame(self):
-        cfg = Config()
-        data = cfg.as_dict()
-        data["preprocess"]["roi_enabled"] = True
-        data["preprocess"]["roi_fraction"] = 0.5
-
-        import yaml
-        import tempfile
-        from pathlib import Path
-
-        with tempfile.TemporaryDirectory() as d:
-            path = Path(d) / "config.yaml"
-            with open(path, "w") as f:
-                yaml.dump(data, f)
-            cfg2 = Config(path)
-
-        p = Preprocessor(cfg2)
+        p = Preprocessor(make_config(preprocess={"roi_enabled": True, "roi_fraction": 0.5}))
         frame = make_frame(1920, 1080)
         result = p.process(frame)
         # 50% crop: roughly 540x960
@@ -168,19 +152,14 @@ class TestROI:
         assert abs(h - 540) < 10
         assert abs(w - 960) < 10
 
-    def test_roi_enabled_centroid_and_bbox_in_full_frame_coordinates(self, tmp_path):
+    def test_roi_enabled_centroid_and_bbox_in_full_frame_coordinates(self):
         frame_w, frame_h = 1920, 1080
         roi_fraction = 0.9
         # deterministic offset from the same formula used in _extract_roi
         ox = int(frame_w * (1 - roi_fraction) / 2)   # 96
         oy = int(frame_h * (1 - roi_fraction) / 2)   # 54
 
-        cfg = Config()
-        data = cfg.as_dict()
-        data["preprocess"]["roi_enabled"] = True
-        data["preprocess"]["roi_fraction"] = roi_fraction
-        path = write_config(data, tmp_path)
-        p = Preprocessor(Config(path))
+        p = Preprocessor(make_config(preprocess={"roi_enabled": True, "roi_fraction": roi_fraction}))
 
         # object placed well off-centre so ROI-local and full-frame coords diverge clearly
         centre = (400, 300)
@@ -207,7 +186,7 @@ class TestROI:
         assert x <= cx <= x + w
         assert y <= cy <= y + h
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestColourConversions:
     """verify HSV and grayscale conversions match expected shapes and types."""
 

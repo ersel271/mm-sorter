@@ -24,7 +24,6 @@ def isolate_logger():
         root.removeHandler(h)
 
 @pytest.mark.smoke
-@pytest.mark.unit
 class TestSetupLogger:
     """verify handler creation, log directory setup, and idempotency."""
 
@@ -77,7 +76,7 @@ class TestSetupLogger:
         sh = [h for h in root.handlers if type(h) is logging.StreamHandler]
         assert sh[0].level == logging.INFO
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestLogOutput:
     """verify log messages reach the file with correct format."""
 

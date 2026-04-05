@@ -1,13 +1,15 @@
-# tests/test_camera.py
+# tests/unit/test_camera.py
 
 from unittest.mock import MagicMock, patch
 
+import cv2
 import pytest
 import numpy as np
 
 from src.io import Camera
+from tests.helpers.config_helpers import make_config
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestCameraInit:
     """verify Camera initialises without opening a device."""
 
@@ -21,7 +23,8 @@ class TestCameraInit:
         assert ok is False
         assert frame is None
 
-@pytest.mark.unit
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestCameraOpenMock:
     """verify open() applies config settings via cv2.VideoCapture."""
 
@@ -58,7 +61,6 @@ class TestCameraOpenMock:
             cam.open()
 
             set_calls = {call[0][0]: call[0][1] for call in mock_cap.set.call_args_list}
-            import cv2
             assert set_calls[cv2.CAP_PROP_FRAME_WIDTH] == 1920
             assert set_calls[cv2.CAP_PROP_FRAME_HEIGHT] == 1080
 
@@ -74,11 +76,47 @@ class TestCameraOpenMock:
             cam.open()
 
             set_calls = {call[0][0]: call[0][1] for call in mock_cap.set.call_args_list}
-            import cv2
             assert set_calls[cv2.CAP_PROP_AUTOFOCUS] == 0
             assert set_calls[cv2.CAP_PROP_FOCUS] == default_cfg.camera["focus"]
 
-@pytest.mark.unit
+    def test_open_applies_autofocus_enabled(self):
+        cfg = make_config(camera={"autofocus": True})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+            cam = Camera(cfg)
+            cam.open()
+            set_calls = {call[0][0]: call[0][1] for call in mock_cap.set.call_args_list}
+            assert set_calls[cv2.CAP_PROP_AUTOFOCUS] == 1
+
+    def test_open_applies_manual_exposure(self):
+        cfg = make_config(camera={"auto_exposure": 1, "exposure": 200})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+            cam = Camera(cfg)
+            cam.open()
+            set_calls = {call[0][0]: call[0][1] for call in mock_cap.set.call_args_list}
+            assert set_calls.get(cv2.CAP_PROP_EXPOSURE) == 200
+
+    def test_open_applies_manual_white_balance(self):
+        cfg = make_config(camera={"auto_wb": False, "wb_temperature": 5000})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+            cam = Camera(cfg)
+            cam.open()
+            set_calls = {call[0][0]: call[0][1] for call in mock_cap.set.call_args_list}
+            assert set_calls.get(cv2.CAP_PROP_WB_TEMPERATURE) == 5000
+
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestCameraReadMock:
     """verify read() returns frames or failure from the underlying capture."""
 
@@ -112,7 +150,6 @@ class TestCameraReadMock:
             assert ok is False
             assert frame is None
 
-@pytest.mark.unit
 class TestCameraSetters:
     """verify focus, exposure, and white balance setters."""
 
@@ -160,7 +197,20 @@ class TestCameraSetters:
         assert cam.set_exposure(3) is False
         assert cam.set_white_balance(auto=True) is False
 
-@pytest.mark.unit
+    def test_set_focus_failure(self, open_cam):
+        cam, mock_cap = open_cam
+        mock_cap.set.side_effect = lambda prop, val: prop != cv2.CAP_PROP_FOCUS
+        assert cam.set_focus(500) is False
+
+    def test_set_white_balance_manual_no_temperature(self, open_cam):
+        cam, mock_cap = open_cam
+        mock_cap.set.reset_mock()
+        result = cam.set_white_balance(auto=False, temperature=None)
+        assert result is True
+        set_props = [call[0][0] for call in mock_cap.set.call_args_list]
+        assert cv2.CAP_PROP_WB_TEMPERATURE not in set_props
+
+@pytest.mark.smoke
 class TestCameraRelease:
     """verify release() cleans up the capture device."""
 
@@ -182,7 +232,7 @@ class TestCameraRelease:
         cam.release()
         assert cam.is_open is False
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestCameraProperties:
     """verify get_properties() reads values from the driver."""
 

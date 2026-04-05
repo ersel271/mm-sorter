@@ -5,6 +5,7 @@ import pytest
 from src.io import Camera
 
 @pytest.mark.hw
+@pytest.mark.camera
 class TestCameraHardware:
     """requires a physical camera connected at the configured device index."""
 

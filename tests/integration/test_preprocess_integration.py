@@ -5,7 +5,8 @@ import pytest
 
 from tests.helpers.image_helpers import make_frame, draw_saturated_circle
 
-@pytest.mark.integration
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestPreprocessIntegration:
     """verify the full preprocessing pipeline end to end."""
 

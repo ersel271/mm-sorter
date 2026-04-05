@@ -4,10 +4,11 @@ import numpy as np
 import pytest
 
 from src.vision.features import Features
-from tests.helpers.features_helpers import make_preprocess_result
+from tests.helpers.vision_helpers import make_preprocess_result
 from tests.helpers.image_helpers import draw_saturated_circle, make_frame
 
-@pytest.mark.integration
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestFeaturesIntegration:
     """verify feature extraction on realistically preprocessed frames."""
 

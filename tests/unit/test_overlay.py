@@ -7,14 +7,13 @@ import numpy as np
 
 from src.ui import Overlay
 from src.ui.panel import PANEL_W
-from config import Config
 from config.constants import ColourID
 from utils.metrics import RunningMetrics
-from tests.helpers.features_helpers import make_decision
+from tests.helpers.config_helpers import make_config
+from tests.helpers.vision_helpers import make_decision
 from tests.helpers.overlay_helpers import NOT_FOUND, render_overlay
 
 @pytest.mark.smoke
-@pytest.mark.unit
 class TestOverlayInit:
     """verify Overlay construction and initial state."""
 
@@ -28,7 +27,7 @@ class TestOverlayInit:
         render_overlay(overlay)
         assert overlay.fps == 0.0
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestRenderDisabled:
     """verify render returns None when display is disabled."""
 
@@ -39,7 +38,7 @@ class TestRenderDisabled:
         for _ in range(5):
             assert render_overlay(overlay_disabled) is None
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestRenderOutput:
     """verify render produces valid annotated frames."""
 
@@ -90,7 +89,7 @@ class TestRenderOutput:
         out = overlay.render(frame, result, None, None)
         assert isinstance(out, np.ndarray)
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestDebugMode:
     """verify debug toggle controls annotation rendering."""
 
@@ -116,7 +115,7 @@ class TestDebugMode:
         assert out is not None
         assert out.dtype == np.uint8
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestRenderScale:
     """verify output dimensions follow the configured scale factor."""
 
@@ -132,7 +131,7 @@ class TestRenderScale:
         assert out is not None
         assert out.shape[:2] == (100, 100 + PANEL_W)
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestFPS:
     """verify fps property reflects render call frequency."""
 
@@ -150,7 +149,7 @@ class TestFPS:
             render_overlay(overlay)
         assert overlay.fps >= 0.0
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestSidebarModes:
     """verify sidebar mode cycling and all three panel render paths."""
 
@@ -175,7 +174,7 @@ class TestSidebarModes:
         overlay.toggle_sidebar()
         assert render_overlay(overlay) is not None
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestLogStripToggle:
     """verify show_log toggle and log strip render path."""
 
@@ -198,10 +197,9 @@ class TestLogStripToggle:
         assert out_no_log is not None and out_with_log is not None
         assert out_with_log.shape[0] > out_no_log.shape[0]
 
-@pytest.mark.unit
 class TestContextManager:
     """verify context manager protocol does not raise."""
 
     def test_context_manager_does_not_crash(self) -> None:
-        with Overlay(Config(), RunningMetrics()) as ov:
+        with Overlay(make_config(), RunningMetrics()) as ov:
             assert ov is not None

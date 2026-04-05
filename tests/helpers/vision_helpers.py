@@ -1,4 +1,4 @@
-# tests/helpers/features_helpers.py
+# tests/helpers/vision_helpers.py
 
 import cv2
 import numpy as np
@@ -37,14 +37,6 @@ def make_preprocess_result(hue=10, sat=200, val=180, radius=30, size=100) -> Pre
         found=True,
     )
 
-def make_decision(
-    label: ColourID = ColourID.RED,
-    confidence: float = 0.90,
-    rule: str = "colour",
-    priority: int = 30,
-) -> Decision:
-    return Decision(label=label, confidence=confidence, rule=rule, priority=priority)
-
 def make_features(
     mask_pixels: int = 2827,
     sat_mean: float = 150.0,
@@ -59,7 +51,7 @@ def make_features(
 ) -> Features:
     """build a Features object with all-passing defaults; override specific fields to trigger rules."""
     if hue_hist is None:
-        # neutral green-ish hue, away from red/orange ranges; will be replaced in colour tests
+        # neutral green-ish hue, away from red/orange ranges, will be replaced in colour tests
         h = np.zeros(180)
         h[45:56] = 1.0 / 11
         hue_hist = h
@@ -75,3 +67,11 @@ def make_features(
         aspect_ratio=aspect_ratio,
         solidity=solidity,
     )
+
+def make_decision(
+    label: ColourID = ColourID.RED,
+    confidence: float = 0.90,
+    rule: str = "colour",
+    priority: int = 30,
+) -> Decision:
+    return Decision(label=label, confidence=confidence, rule=rule, priority=priority)

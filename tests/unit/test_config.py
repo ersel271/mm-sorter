@@ -8,7 +8,7 @@ from config import Config, ColourID, COLOUR_NAMES
 from config.config import ConfigError
 from tests.helpers.config_helpers import write_config
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestConstants:
     """verify ColourID enum values and COLOUR_NAMES mapping consistency."""
 
@@ -34,7 +34,6 @@ class TestConstants:
             assert len(name) > 0
 
 @pytest.mark.smoke
-@pytest.mark.unit
 class TestConfigLoading:
     """verify config loads from default and custom paths, rejects bad input."""
 
@@ -42,8 +41,8 @@ class TestConfigLoading:
         assert default_cfg is not None
         assert default_cfg.path.name == "config.yaml"
 
-    def test_custom_path_loads(self, valid_data, tmp_path):
-        path = write_config(valid_data, tmp_path)
+    def test_custom_path_loads(self, full_data, tmp_path):
+        path = write_config(full_data, tmp_path)
         cfg = Config(path)
         assert cfg.camera["device"] == 2
 
@@ -68,7 +67,7 @@ class TestConfigLoading:
         assert "Config(" in r
         assert "config.yaml" in r
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestConfigAccess:
     """verify dict-based access to each config section."""
 
@@ -108,7 +107,7 @@ class TestConfigAccess:
         s = default_cfg.system
         assert s["log_dir"] == "data/logs"
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestConfigColours:
     """verify colour_names() returns all configured colours."""
 
@@ -116,7 +115,7 @@ class TestConfigColours:
         names = default_cfg.colour_names()
         assert set(names) == {"red", "green", "blue", "yellow", "orange", "brown"}
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestConfigAsDict:
     """verify as_dict() returns a complete deep copy."""
 
@@ -130,28 +129,28 @@ class TestConfigAsDict:
         d["camera"]["device"] = 999
         assert default_cfg.camera["device"] == 2
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestValidationMissingSections:
     """verify ConfigError is raised when any required section is missing."""
 
     @pytest.mark.parametrize("section", [
         "camera", "preprocess", "features", "thresholds", "colours", "uart", "system",
     ])
-    def test_missing_section_raises(self, valid_data, tmp_path, section):
-        data = copy.deepcopy(valid_data)
+    def test_missing_section_raises(self, full_data, tmp_path, section):
+        data = copy.deepcopy(full_data)
         del data[section]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=f"missing required section.*{section}"):
             Config(path)
 
-    def test_section_not_a_dict_raises(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_section_not_a_dict_raises(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["camera"] = "not_a_dict"
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="must be a mapping"):
             Config(path)
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestValidationMissingFields:
     """verify ConfigError is raised when required fields are missing."""
 
@@ -168,216 +167,216 @@ class TestValidationMissingFields:
         ("uart", "baud"),
         ("system", "log_dir"),
     ])
-    def test_missing_field_raises(self, valid_data, tmp_path, section, field):
-        data = copy.deepcopy(valid_data)
+    def test_missing_field_raises(self, full_data, tmp_path, section, field):
+        data = copy.deepcopy(full_data)
         del data[section][field]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=f"missing required field.*{section}.{field}"):
             Config(path)
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestValidationTypes:
     """verify ConfigError is raised on type mismatches."""
 
-    def test_camera_device_must_be_int(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_camera_device_must_be_int(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["camera"]["device"] = "two"
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"camera\.device"):
             Config(path)
 
-    def test_camera_autofocus_must_be_bool(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_camera_autofocus_must_be_bool(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["camera"]["autofocus"] = "yes"
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"camera\.autofocus"):
             Config(path)
 
-    def test_uart_port_must_be_str(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_uart_port_must_be_str(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["uart"]["port"] = 12345
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"uart\.port"):
             Config(path)
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestValidationRanges:
     """verify ConfigError is raised when numeric values are out of range."""
 
-    def test_focus_below_range(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_focus_below_range(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["camera"]["focus"] = 0
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="focus"):
             Config(path)
 
-    def test_focus_above_range(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_focus_above_range(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["camera"]["focus"] = 1024
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="focus"):
             Config(path)
 
-    def test_blur_kernel_even_raises(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_blur_kernel_even_raises(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["preprocess"]["blur_kernel"] = 4
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="blur_kernel must be odd"):
             Config(path)
 
-    def test_highlight_max_above_1(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_highlight_max_above_1(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["thresholds"]["highlight_max"] = 1.5
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="highlight_max"):
             Config(path)
 
-    def test_circularity_min_negative(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_circularity_min_negative(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["thresholds"]["circularity_min"] = -0.1
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="circularity_min"):
             Config(path)
 
-    def test_fps_below_range(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_fps_below_range(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["camera"]["fps"] = 0
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="fps must be positive"):
             Config(path)
 
-    def test_morph_kernel_below_range(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_morph_kernel_below_range(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["preprocess"]["morph_kernel"] = 0
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="morph_kernel must be positive"):
             Config(path)
 
-    def test_solidity_min_out_of_range(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_solidity_min_out_of_range(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["thresholds"]["solidity_min"] = 1.5
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="solidity_min"):
             Config(path)
 
-    def test_colour_confidence_min_out_of_range(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_colour_confidence_min_out_of_range(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["thresholds"]["colour_confidence_min"] = -0.1
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="colour_confidence_min"):
             Config(path)
 
-    def test_decision_min_out_of_range(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_decision_min_out_of_range(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["thresholds"]["decision_min"] = 1.5
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="decision_min"):
             Config(path)
 
-    def test_decision_min_missing_raises(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_decision_min_missing_raises(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         del data["thresholds"]["decision_min"]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="decision_min"):
             Config(path)
 
-    def test_baud_too_low(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_baud_too_low(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["uart"]["baud"] = 300
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="baud"):
             Config(path)
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestValidationColours:
     """verify ConfigError is raised on malformed colour entries."""
 
-    def test_empty_colours_raises(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_empty_colours_raises(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"] = {}
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="at least one colour"):
             Config(path)
 
-    def test_colour_missing_h(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_colour_missing_h(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         del data["colours"]["red"]["h"]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"red.*h"):
             Config(path)
 
-    def test_colour_missing_s(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_colour_missing_s(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         del data["colours"]["red"]["s"]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"red.*s"):
             Config(path)
 
-    def test_colour_missing_v(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_colour_missing_v(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         del data["colours"]["red"]["v"]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"red.*v"):
             Config(path)
 
-    def test_h_empty_list(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_h_empty_list(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["red"]["h"] = []
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"h.*non-empty"):
             Config(path)
 
-    def test_h_bad_pair(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_h_bad_pair(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["red"]["h"] = [[10, 20, 30]]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"min, max.*pair"):
             Config(path)
 
-    def test_h_min_greater_than_max(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_h_min_greater_than_max(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["red"]["h"] = [[50, 10]]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"min.*>.*max"):
             Config(path)
 
-    def test_h_non_numeric(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_h_non_numeric(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["red"]["h"] = [["a", "b"]]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="must be numbers"):
             Config(path)
 
-    def test_s_bad_pair(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_s_bad_pair(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["red"]["s"] = [100]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"min, max.*pair"):
             Config(path)
 
-    def test_v_min_greater_than_max(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_v_min_greater_than_max(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["red"]["v"] = [255, 50]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match=r"min.*>.*max"):
             Config(path)
 
-    def test_unknown_colour_name_raises(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_unknown_colour_name_raises(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["purple"] = data["colours"]["red"]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="not a recognised colour"):
             Config(path)
 
-    def test_non_mm_as_colour_name_raises(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_non_mm_as_colour_name_raises(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["non-m&m"] = data["colours"]["red"]
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="not a recognised colour"):
             Config(path)
 
-    def test_colour_entry_not_a_dict_raises(self, valid_data, tmp_path):
-        data = copy.deepcopy(valid_data)
+    def test_colour_entry_not_a_dict_raises(self, full_data, tmp_path):
+        data = copy.deepcopy(full_data)
         data["colours"]["red"] = "not_a_dict"
         path = write_config(data, tmp_path)
         with pytest.raises(ConfigError, match="must be a mapping"):

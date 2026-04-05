@@ -21,3 +21,14 @@ def sender(default_cfg, mock_port) -> UARTSender:
     s._port = mock_port
     s._is_open = True
     return s
+
+@pytest.fixture
+def virtual_uart():
+    """open a pty pair, yields (master_fd, slave_path) for virtual hardware serial testing."""
+    import pty
+    import os
+    master_fd, slave_fd = pty.openpty()
+    slave_path = os.ttyname(slave_fd)
+    yield master_fd, slave_path
+    os.close(master_fd)
+    os.close(slave_fd)

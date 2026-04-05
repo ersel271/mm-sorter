@@ -5,13 +5,12 @@ import dataclasses
 import numpy as np
 import pytest
 
-from config import Config
 from src.vision.features import FeatureExtractor, Features
-from tests.helpers.config_helpers import write_config
-from tests.helpers.features_helpers import make_preprocess_result
+from tests.helpers.config_helpers import make_config
+from tests.helpers.vision_helpers import make_preprocess_result
 
 @pytest.mark.smoke
-@pytest.mark.unit
+@pytest.mark.regression
 class TestExtractGuards:
     """verify that extract() enforces its input preconditions."""
 
@@ -40,7 +39,7 @@ class TestExtractGuards:
         features = extractor.extract(result)
         assert features.mask_pixels == int(np.count_nonzero(result.mask))
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestSatMean:
     """verify mean saturation across masked pixels."""
 
@@ -57,7 +56,7 @@ class TestSatMean:
         features = extractor.extract(make_preprocess_result(sat=180))
         assert abs(features.sat_mean - 180) < 5
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestValMean:
     """verify mean brightness across masked pixels."""
 
@@ -74,7 +73,7 @@ class TestValMean:
         features = extractor.extract(make_preprocess_result(val=160))
         assert abs(features.val_mean - 160) < 5
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestHighlightRatio:
     """verify fraction of pixels exceeding the brightness threshold."""
 
@@ -93,7 +92,7 @@ class TestHighlightRatio:
         features = extractor.extract(make_preprocess_result(val=240))
         assert features.highlight_ratio == 0.0
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestHueHist:
     """verify hue histogram normalisation, shape, and peak position."""
 
@@ -116,15 +115,13 @@ class TestHueHist:
         features = extractor.extract(make_preprocess_result())
         assert np.all(features.hue_hist >= 0)
 
-    def test_no_smoothing_when_sigma_zero(self, tmp_path):
-        data = Config().as_dict()
-        data["features"]["hue_smooth_sigma"] = 0
-        ext = FeatureExtractor(Config(write_config(data, tmp_path)))
+    def test_no_smoothing_when_sigma_zero(self):
+        ext = FeatureExtractor(make_config(features={"hue_smooth_sigma": 0}))
         features = ext.extract(make_preprocess_result(hue=30))
         # without smoothing the entire mass is at a single bin
         assert features.hue_hist[30] > 0.95
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestHuePeakWidth:
     """verify dominant hue cluster width including circular wrap-around."""
 
@@ -151,7 +148,6 @@ class TestHuePeakWidth:
         f_midrange = extractor.extract(make_preprocess_result(hue=90))
         assert abs(f_boundary.hue_peak_width - f_midrange.hue_peak_width) <= 5
 
-@pytest.mark.unit
 class TestTextureVariance:
     """verify Laplacian-based texture measurement."""
 
@@ -169,7 +165,7 @@ class TestTextureVariance:
         with pytest.raises(ValueError, match="2-D"):
             extractor.extract(result)
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestCircularity:
     """verify 4*pi*A/P^2 circularity computation."""
 
@@ -186,7 +182,7 @@ class TestCircularity:
         features = extractor.extract(result)
         assert features.circularity == 0.0
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestAspectRatio:
     """verify bounding box width/height ratio."""
 
@@ -212,7 +208,7 @@ class TestAspectRatio:
         features = extractor.extract(result)
         assert features.aspect_ratio > 1.5
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestSolidity:
     """verify contour area / convex hull area ratio."""
 

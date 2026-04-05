@@ -5,7 +5,6 @@ import pytest
 from src.ui import Overlay, handle_key
 
 @pytest.mark.smoke
-@pytest.mark.unit
 class TestHandleKeyQuit:
     """verify q key signals application quit."""
 
@@ -15,7 +14,7 @@ class TestHandleKeyQuit:
     def test_q_with_high_bits_returns_true(self, overlay: Overlay) -> None:
         assert handle_key(ord("q") | 0xFFFF00, overlay) is True
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestHandleKeyDebug:
     """verify d key toggles debug overlay and returns False."""
 
@@ -32,7 +31,7 @@ class TestHandleKeyDebug:
         handle_key(ord("d"), overlay)
         assert overlay.debug is True
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestHandleKeySidebar:
     """verify t key cycles sidebar mode and returns False."""
 
@@ -50,7 +49,7 @@ class TestHandleKeySidebar:
             handle_key(ord("t"), overlay)
         assert overlay._sidebar_mode == initial
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestHandleKeyLog:
     """verify l key toggles log strip and returns False."""
 
@@ -67,7 +66,7 @@ class TestHandleKeyLog:
         handle_key(ord("l"), overlay)
         assert overlay._show_log is False
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestHandleKeyUnknown:
     """verify unbound keys are silently ignored."""
 

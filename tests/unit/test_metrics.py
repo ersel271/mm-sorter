@@ -5,7 +5,7 @@ import pytest
 from tests.helpers.events_helpers import make_event
 from utils.metrics import confusion_matrix, per_class_metrics, accuracy, normalise_confusion_matrix
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestRunningMetricsCounters:
     """verify total and low_confidence counters"""
 
@@ -34,7 +34,7 @@ class TestRunningMetricsCounters:
         assert metrics.total == 4
         assert metrics.low_confidence == 1
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestRunningMetricsPerClass:
     """verify per-class counters"""
 
@@ -48,7 +48,7 @@ class TestRunningMetricsPerClass:
         assert metrics.class_count(2) == 2
         assert metrics.class_count(3) == 1
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestRunningMetricsAverages:
     """verify mean_confidence and mean_frame_ms"""
 
@@ -72,7 +72,7 @@ class TestRunningMetricsAverages:
         metrics.update(make_event(frame_ms=40.0))
         assert metrics.mean_frame_ms == pytest.approx(30.0)
 
-@pytest.mark.unit
+@pytest.mark.smoke
 class TestRunningMetricsSnapshot:
     """verify snapshot() returns a consistent plain dict"""
 
@@ -91,7 +91,8 @@ class TestRunningMetricsSnapshot:
         assert snap["low_confidence"] == metrics.low_confidence
         assert snap["mean_confidence"] == pytest.approx(metrics.mean_confidence)
 
-@pytest.mark.unit
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestConfusionMatrix:
     """verify confusion_matrix builds a correct num_classes x num_classes grid"""
 
@@ -122,7 +123,7 @@ class TestConfusionMatrix:
         assert len(matrix) == 4
         assert all(len(row) == 4 for row in matrix)
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestPerClassMetrics:
     """verify per-class precision, recall, and F1 computations"""
 
@@ -154,7 +155,8 @@ class TestPerClassMetrics:
         for i, r in enumerate(results):
             assert r["class_id"] == i
 
-@pytest.mark.unit
+@pytest.mark.smoke
+@pytest.mark.regression
 class TestAccuracy:
     """verify overall accuracy computation"""
 
@@ -177,7 +179,7 @@ class TestAccuracy:
     def test_empty_matrix_returns_zero(self):
         assert accuracy([[0, 0], [0, 0]]) == pytest.approx(0.0)
 
-@pytest.mark.unit
+@pytest.mark.regression
 class TestNormaliseConfusionMatrix:
     """verify row-normalisation of confusion matrices"""
 
