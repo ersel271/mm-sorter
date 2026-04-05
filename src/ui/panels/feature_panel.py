@@ -48,7 +48,7 @@ class FeaturePanel(Panel):
         ]
         n = len(_ROWS)
         y0 = 44
-        row_h = max(28, (panel_h - y0 - 10) // n)
+        row_h = min(72, max(28, (panel_h - y0 - 10) // n))
         bar_x0, bar_x1 = 12, PANEL_W - 12
         bar_w = bar_x1 - bar_x0
 
