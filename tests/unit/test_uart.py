@@ -1,4 +1,4 @@
-# tests/test_uart.py
+# tests/unit/test_uart.py
 
 import pytest
 import serial

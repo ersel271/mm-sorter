@@ -1,4 +1,4 @@
-# tests/test_config.py
+# tests/unit/test_config.py
 
 import copy
 
