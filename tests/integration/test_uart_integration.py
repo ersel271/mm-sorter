@@ -3,6 +3,7 @@
 import pytest
 import serial
 
+from src.io import build_packet, PCK_START, PCK_END_OK, PCK_END_ERR
 from config.constants import UART_SEPARATOR
 from tests.helpers.uart_helpers import sample_fields
 
@@ -41,3 +42,26 @@ class TestUARTIntegration:
         assert len(parts) == 8
         assert parts[6] == "1500"
         assert parts[7] == "142.50"
+
+@pytest.mark.smoke
+@pytest.mark.regression
+class TestControlPacketCycle:
+    """verify control packets transmit correctly through UARTSender"""
+
+    def test_start_packet_sent(self, sender, mock_port):
+        result = sender.send(PCK_START)
+        assert result is True
+        mock_port.write.assert_called_once_with(build_packet(PCK_START))
+
+    def test_end_ok_sent(self, sender, mock_port):
+        result = sender.send(PCK_END_OK)
+        assert result is True
+        mock_port.write.assert_called_once_with(build_packet(PCK_END_OK))
+
+    def test_end_err_sent(self, sender, mock_port):
+        result = sender.send(PCK_END_ERR)
+        assert result is True
+        mock_port.write.assert_called_once_with(build_packet(PCK_END_ERR))
+
+    def test_end_ok_and_end_err_are_distinct(self, sender, mock_port):
+        assert build_packet(PCK_END_OK) != build_packet(PCK_END_ERR)

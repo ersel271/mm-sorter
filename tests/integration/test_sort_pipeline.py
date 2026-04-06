@@ -3,6 +3,8 @@
 import sys
 from unittest.mock import MagicMock, patch
 
+from src.io import build_packet, PCK_START, PCK_END_OK, PCK_END_ERR
+
 import pytest
 
 from sort import pipeline
@@ -63,6 +65,36 @@ class TestPipelineFullRun:
                 with patch("sort.UARTSender", return_value=sender):
                     result = pipeline()
         assert result == 1
+
+    def test_start_and_end_ok_packets_sent(self, monkeypatch, tmp_path, sender, mock_port):
+        folder = make_inject_folder(tmp_path, n_images=3)
+        cfg = _pipeline_cfg(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "sort.py",
+            "--inject-from", str(folder),
+            "--max-objects", "1",
+            "--log-level", "WARNING",
+        ])
+        with patch("sort.Config", return_value=cfg):
+            with patch("sort.UARTSender", return_value=sender):
+                pipeline()
+        writes = [c.args[0] for c in mock_port.write.call_args_list]
+        assert writes[0]  == build_packet(PCK_START)
+        assert writes[-1] == build_packet(PCK_END_OK)
+
+    def test_end_err_packet_sent_on_camera_failure(self, monkeypatch, tmp_path, sender, mock_port):
+        cfg = _pipeline_cfg(tmp_path)
+        monkeypatch.setattr(sys, "argv", ["sort.py", "--log-level", "WARNING"])
+        with patch("sort.Config", return_value=cfg):
+            with patch("sort.Camera") as mock_cam_cls:
+                mock_cam = MagicMock()
+                mock_cam.open.return_value = False
+                mock_cam_cls.return_value = mock_cam
+                with patch("sort.UARTSender", return_value=sender):
+                    pipeline()
+        writes = [c.args[0] for c in mock_port.write.call_args_list]
+        assert writes[0]  == build_packet(PCK_START)
+        assert writes[-1] == build_packet(PCK_END_ERR)
 
     def test_pipeline_with_ground_truth(self, monkeypatch, tmp_path, sender):
         from tests.helpers.ground_truth_helpers import write_gt

@@ -3,7 +3,7 @@
 import pytest
 import serial
 
-from src.io import UARTSender, build_packet
+from src.io import UARTSender, build_packet, PCK_START, PCK_END_OK, PCK_END_ERR
 from config.constants import UART_SEPARATOR, UART_TERMINATOR
 from tests.helpers.uart_helpers import sample_fields
 
@@ -51,6 +51,19 @@ class TestBuildPacket:
     def test_reduced_fields(self):
         pkt = build_packet({"id": 1, "class": 3})
         assert pkt == b"1;3\n"
+
+@pytest.mark.smoke
+class TestControlPackets:
+    """verify control packet constants serialise to expected wire bytes"""
+
+    def test_start_packet_wire_format(self):
+        assert build_packet(PCK_START) == b"START\n"
+
+    def test_end_ok_wire_format(self):
+        assert build_packet(PCK_END_OK) == b"END;0\n"
+
+    def test_end_err_wire_format(self):
+        assert build_packet(PCK_END_ERR) == b"END;1\n"
 
 @pytest.mark.regression
 class TestUARTSenderOpen:
