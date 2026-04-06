@@ -24,6 +24,10 @@ from config import Config
 _LOG_FORMAT = "%(asctime)s (%(levelname)-8s) [%(filename)-14s:%(lineno)-3d] - %(message)s"
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
+# top-level packages that belong to this project are listed. all others are 
+# treated as external libraries and will only emit WARNING and above messages
+_PROJECT_PACKAGES = ("config", "src", "utils", "__main__")
+
 # tracks whether setup has already been called
 _initialised = False
 
@@ -42,7 +46,7 @@ def setup_logger(config: Config, level: int = logging.DEBUG) -> logging.Logger:
         return logging.getLogger()
 
     root = logging.getLogger()
-    root.setLevel(level)
+    root.setLevel(logging.WARNING)
 
     formatter = logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT)
 
@@ -64,7 +68,10 @@ def setup_logger(config: Config, level: int = logging.DEBUG) -> logging.Logger:
     file_handler.setFormatter(formatter)
     root.addHandler(file_handler)
 
+    for pkg in _PROJECT_PACKAGES:
+        logging.getLogger(pkg).setLevel(level)
+
     _initialised = True
 
-    root.info("logger initialised, writing to %s", log_file)
+    logging.getLogger(__name__).info("logger initialised, writing to %s", log_file)
     return root
