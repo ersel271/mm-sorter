@@ -3,7 +3,7 @@
 import sys
 from unittest.mock import MagicMock, patch
 
-from src.io import build_packet, PCK_START, PCK_END_OK, PCK_END_ERR
+from src.io import build_packet, PCK_START, PCK_END_OK, PCK_END_ERR, PCK_FREEZE_START
 
 import pytest
 
@@ -95,6 +95,33 @@ class TestPipelineFullRun:
         writes = [c.args[0] for c in mock_port.write.call_args_list]
         assert writes[0]  == build_packet(PCK_START)
         assert writes[-1] == build_packet(PCK_END_ERR)
+
+    def test_freeze_start_sent_and_quit_while_frozen(self, monkeypatch, tmp_path, sender, mock_port):
+        folder = make_inject_folder(tmp_path, n_images=10)
+        cfg = _pipeline_cfg(tmp_path)
+        monkeypatch.setattr(sys, "argv", [
+            "sort.py",
+            "--inject-from", str(folder),
+            "--log-level", "WARNING",
+        ])
+        call_count = 0
+
+        def mock_display(frame, result, features, decision, ov, uart, is_record_frame):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                ov.toggle_freeze()  # triggers PCK_FREEZE_START on return
+                return False
+            return True  # quit: normal path (call 2+), or frozen path if already frozen
+
+        with patch("sort.Config", return_value=cfg):
+            with patch("sort.UARTSender", return_value=sender):
+                with patch("sort.display", side_effect=mock_display):
+                    result = pipeline()
+
+        assert result == 0
+        writes = [c.args[0] for c in mock_port.write.call_args_list]
+        assert build_packet(PCK_FREEZE_START) in writes
 
     def test_pipeline_with_ground_truth(self, monkeypatch, tmp_path, sender):
         from tests.helpers.ground_truth_helpers import write_gt

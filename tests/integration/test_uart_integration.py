@@ -3,7 +3,7 @@
 import pytest
 import serial
 
-from src.io import build_packet, PCK_START, PCK_END_OK, PCK_END_ERR
+from src.io import build_packet, PCK_START, PCK_END_OK, PCK_END_ERR, PCK_FREEZE_START, PCK_FREEZE_END
 from config.constants import UART_SEPARATOR
 from tests.helpers.uart_helpers import sample_fields
 
@@ -65,3 +65,11 @@ class TestControlPacketCycle:
 
     def test_end_ok_and_end_err_are_distinct(self, sender, mock_port):
         assert build_packet(PCK_END_OK) != build_packet(PCK_END_ERR)
+
+    def test_freeze_start_packet_sent(self, sender, mock_port):
+        assert sender.send(PCK_FREEZE_START) is True
+        assert mock_port.write.call_args[0][0] == b"FREEZE;0\n"
+
+    def test_freeze_end_packet_sent(self, sender, mock_port):
+        assert sender.send(PCK_FREEZE_END) is True
+        assert mock_port.write.call_args[0][0] == b"FREEZE;1\n"

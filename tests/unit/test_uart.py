@@ -3,7 +3,7 @@
 import pytest
 import serial
 
-from src.io import UARTSender, build_packet, PCK_START, PCK_END_OK, PCK_END_ERR
+from src.io import UARTSender, build_packet, PCK_START, PCK_END_OK, PCK_END_ERR, PCK_FREEZE_START, PCK_FREEZE_END
 from config.constants import UART_SEPARATOR, UART_TERMINATOR
 from tests.helpers.uart_helpers import sample_fields
 
@@ -64,6 +64,12 @@ class TestControlPackets:
 
     def test_end_err_wire_format(self):
         assert build_packet(PCK_END_ERR) == b"END;1\n"
+
+    def test_freeze_start_wire_format(self):
+        assert build_packet(PCK_FREEZE_START) == b"FREEZE;0\n"
+
+    def test_freeze_end_wire_format(self):
+        assert build_packet(PCK_FREEZE_END) == b"FREEZE;1\n"
 
 @pytest.mark.regression
 class TestUARTSenderOpen:

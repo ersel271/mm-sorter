@@ -116,6 +116,32 @@ class TestDebugMode:
         assert out.dtype == np.uint8
 
 @pytest.mark.smoke
+class TestFreezeMode:
+    """verify freeze toggle controls frozen state and indicator rendering."""
+
+    def test_frozen_false_by_default(self, overlay: Overlay) -> None:
+        assert overlay.frozen is False
+
+    def test_toggle_freeze_switches_to_true(self, overlay: Overlay) -> None:
+        overlay.toggle_freeze()
+        assert overlay.frozen is True
+
+    def test_toggle_freeze_twice_restores_false(self, overlay: Overlay) -> None:
+        overlay.toggle_freeze()
+        overlay.toggle_freeze()
+        assert overlay.frozen is False
+
+    def test_frozen_still_returns_ndarray(self, overlay: Overlay) -> None:
+        overlay.toggle_freeze()
+        assert isinstance(render_overlay(overlay), np.ndarray)
+
+    def test_frozen_indicator_renders_without_crash(self, overlay: Overlay) -> None:
+        overlay.toggle_freeze()
+        out = render_overlay(overlay)
+        assert out is not None
+        assert out.dtype == np.uint8
+
+@pytest.mark.smoke
 class TestRenderScale:
     """verify output dimensions follow the configured scale factor."""
 
