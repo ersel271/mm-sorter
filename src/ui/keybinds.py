@@ -23,6 +23,7 @@ _BINDS: dict[int, str] = {
     ord("d"): "debug",
     ord("t"): "sidebar",
     ord("l"): "log",
+    ord("f"): "freeze",
 }
 
 def handle_key(key: int, ov: Overlay) -> bool:
@@ -36,6 +37,8 @@ def handle_key(key: int, ov: Overlay) -> bool:
             return _on_sidebar(ov)
         case "log":
             return _on_log(ov)
+        case "freeze":
+            return _on_freeze(ov)
         case _:
             return False
 
@@ -55,4 +58,9 @@ def _on_sidebar(ov: Overlay) -> bool:
 
 def _on_log(ov: Overlay) -> bool:
     ov.toggle_log()
+    return False
+
+def _on_freeze(ov: Overlay) -> bool:
+    ov.toggle_freeze()
+    log.info("freeze %s", "on" if ov.frozen else "off")
     return False
