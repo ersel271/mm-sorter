@@ -16,10 +16,11 @@ Options:
   --log-level LEVEL     DEBUG, INFO, WARNING (default: INFO)
 
 Controls:
-    d   toggle debug mode
-    t   toggle sidebar menus (features, decision breakdown and stats)
-    l   toggle log menu
-    q   quit the application
+    d       toggle debug mode
+    f       toggle freeze mode
+    t       toggle sidebar menus (features, decision breakdown and stats)
+    l       toggle log menu
+    q       quit the application
 
 Run Modes:
     Live mode uses the camera as the frame source for real-time operation
@@ -49,7 +50,7 @@ from config import Config
 from config.constants import ColourID, COLOUR_NAMES, OBJECT_ID_MAX
 
 from src.ui import Overlay, handle_key
-from src.io import Camera, UARTSender, PCK_START, PCK_END_OK, PCK_END_ERR
+from src.io import Camera, UARTSender, PCK_START, PCK_END_OK, PCK_END_ERR, PCK_FREEZE_START, PCK_FREEZE_END
 from src.vision import Classifier, Decision, FeatureExtractor, Features, Preprocessor, PreprocessResult
 
 from utils.log import setup_logger
@@ -315,6 +316,9 @@ def pipeline() -> int:
 
     # main pipeline loop
     try:
+        last_frame: np.ndarray | None = None
+        last_result: PreprocessResult | None = None
+
         with Overlay(cfg, metrics) as ov:
             while True:
                 if time.monotonic() >= state.timeout_at:
@@ -322,11 +326,22 @@ def pipeline() -> int:
                     break
 
                 t0 = time.monotonic()
+
+                if ov.frozen:
+                    if last_frame is not None and last_result is not None:
+                        state.frame_num += 1
+                        if display(last_frame, last_result, None, None, ov, uart, False):
+                            break
+                        if not ov.frozen:
+                            uart.send(PCK_FREEZE_END)
+                    continue
+
                 frame = acquire(frames_iter, cam)
                 if frame is None:
                     continue
 
                 result = preprocess(frame, prep)
+                last_frame, last_result = frame, result
                 is_record_frame = False
                 features = decision = None
 
@@ -350,6 +365,8 @@ def pipeline() -> int:
                 state.frame_num += 1
                 if display(frame, result, features, decision, ov, uart, is_record_frame):
                     break
+                if ov.frozen:
+                    uart.send(PCK_FREEZE_START)
 
     # teardown
     except KeyboardInterrupt:
