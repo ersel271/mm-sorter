@@ -9,6 +9,11 @@ import numpy as np
 from src.io import Camera
 from tests.helpers.config_helpers import make_config
 
+@pytest.fixture(autouse=True)
+def _stub_subprocess():
+    with patch("src.io.camera.subprocess.run", side_effect=FileNotFoundError):
+        yield
+
 @pytest.mark.smoke
 class TestCameraInit:
     """verify Camera initialises without opening a device."""
@@ -209,6 +214,118 @@ class TestCameraSetters:
         assert result is True
         set_props = [call[0][0] for call in mock_cap.set.call_args_list]
         assert cv2.CAP_PROP_WB_TEMPERATURE not in set_props
+
+class TestCameraPowerLineFreq:
+    """verify _apply_power_line_freq() dispatches correctly via v4l2-ctl."""
+
+    def _open_cam(self, cfg):
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+            cam = Camera(cfg)
+            cam.open()
+            return cam
+
+    def test_applied_on_linux(self):
+        cfg = make_config(camera={"power_line_frequency": 1})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc, \
+             patch("src.io.camera.sys.platform", "linux"), \
+             patch("src.io.camera.subprocess.run") as mock_run:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+
+            mock_probe = MagicMock()
+            mock_probe.stdout = "power_line_frequency 0x00980918 (menu): value=1"
+            mock_run.side_effect = [mock_probe, MagicMock()]
+
+            cam = Camera(cfg)
+            cam.open()
+
+            assert mock_run.call_count == 2
+            set_call_args = mock_run.call_args_list[1][0][0]
+            assert "--set-ctrl=power_line_frequency=1" in set_call_args
+
+    def test_skipped_when_zero(self):
+        cfg = make_config(camera={"power_line_frequency": 0})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc, \
+             patch("src.io.camera.sys.platform", "linux"), \
+             patch("src.io.camera.subprocess.run") as mock_run:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+
+            cam = Camera(cfg)
+            cam.open()
+
+            mock_run.assert_not_called()
+
+    def test_skipped_on_non_linux(self):
+        cfg = make_config(camera={"power_line_frequency": 1})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc, \
+             patch("src.io.camera.sys.platform", "win32"), \
+             patch("src.io.camera.subprocess.run") as mock_run:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+
+            cam = Camera(cfg)
+            cam.open()
+
+            mock_run.assert_not_called()
+
+    def test_skipped_when_not_supported(self):
+        cfg = make_config(camera={"power_line_frequency": 1})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc, \
+             patch("src.io.camera.sys.platform", "linux"), \
+             patch("src.io.camera.subprocess.run") as mock_run:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+
+            mock_probe = MagicMock()
+            mock_probe.stdout = "brightness 0x00980900 (int): value=128"
+            mock_run.side_effect = [mock_probe]
+
+            cam = Camera(cfg)
+            cam.open()
+
+            assert mock_run.call_count == 1
+
+    def test_v4l2_not_found(self):
+        cfg = make_config(camera={"power_line_frequency": 1})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc, \
+             patch("src.io.camera.sys.platform", "linux"), \
+             patch("src.io.camera.subprocess.run", side_effect=FileNotFoundError):
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+
+            cam = Camera(cfg)
+            assert cam.open() is True
+
+    def test_v4l2_error(self):
+        import subprocess as _subprocess
+        cfg = make_config(camera={"power_line_frequency": 1})
+        err = _subprocess.CalledProcessError(1, "v4l2-ctl")
+        err.stderr = "operation not permitted"
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc, \
+             patch("src.io.camera.sys.platform", "linux"), \
+             patch("src.io.camera.subprocess.run", side_effect=err):
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+
+            cam = Camera(cfg)
+            assert cam.open() is True
 
 @pytest.mark.smoke
 class TestCameraRelease:
