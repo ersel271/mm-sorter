@@ -1,4 +1,4 @@
-# tests/test_log.py
+# tests/unit/test_log.py
 
 import re
 import logging
@@ -16,12 +16,16 @@ def isolate_logger():
     for h in root.handlers[:]:
         h.close()
         root.removeHandler(h)
+    for pkg in log_module._PROJECT_PACKAGES:
+        logging.getLogger(pkg).setLevel(logging.NOTSET)
     yield
     log_module._initialised = False
     root = logging.getLogger()
     for h in root.handlers[:]:
         h.close()
         root.removeHandler(h)
+    for pkg in log_module._PROJECT_PACKAGES:
+        logging.getLogger(pkg).setLevel(logging.NOTSET)
 
 @pytest.mark.smoke
 class TestSetupLogger:
@@ -66,9 +70,14 @@ class TestSetupLogger:
         our = [h for h in root.handlers if type(h) in (logging.StreamHandler, logging.FileHandler)]
         assert len(our) == 2
 
-    def test_root_level_is_debug(self, tmp_cfg):
+    def test_root_level_is_warning(self, tmp_cfg):
         setup_logger(tmp_cfg)
-        assert logging.getLogger().level == logging.DEBUG
+        assert logging.getLogger().level == logging.WARNING
+
+    def test_project_loggers_use_requested_level(self, tmp_cfg):
+        setup_logger(tmp_cfg)
+        for pkg in log_module._PROJECT_PACKAGES:
+            assert logging.getLogger(pkg).level == logging.DEBUG
 
     def test_stream_handler_is_info(self, tmp_cfg):
         setup_logger(tmp_cfg)
@@ -82,7 +91,7 @@ class TestLogOutput:
 
     def test_writes_to_file(self, tmp_cfg):
         setup_logger(tmp_cfg)
-        logging.getLogger("test").info("hello from test")
+        logging.getLogger("src.test").info("hello from test")
         for h in logging.getLogger().handlers:
             h.flush()
         log_dir = Path(tmp_cfg.system["log_dir"])
@@ -105,9 +114,18 @@ class TestLogOutput:
 
     def test_debug_reaches_file(self, tmp_cfg):
         setup_logger(tmp_cfg)
-        logging.getLogger("dbg").debug("debug msg")
+        logging.getLogger("utils.dbg").debug("debug msg")
         for h in logging.getLogger().handlers:
             h.flush()
         log_dir = Path(tmp_cfg.system["log_dir"])
         content = next(iter(log_dir.glob("sorter_*.log"))).read_text()
         assert "debug msg" in content
+
+    def test_external_logger_below_warning_not_written(self, tmp_cfg):
+        setup_logger(tmp_cfg)
+        logging.getLogger("somelib").info("external info")
+        for h in logging.getLogger().handlers:
+            h.flush()
+        log_dir = Path(tmp_cfg.system["log_dir"])
+        content = next(iter(log_dir.glob("sorter_*.log"))).read_text()
+        assert "external info" not in content

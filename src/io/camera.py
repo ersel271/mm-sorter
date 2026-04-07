@@ -13,7 +13,9 @@ Usage:
     cam.release()
 """
 
+import sys
 import logging
+import subprocess
 
 import cv2
 import numpy as np
@@ -209,5 +211,34 @@ class Camera:
             self._cap.set(cv2.CAP_PROP_WB_TEMPERATURE, temp)
 
     def _apply_power_line_freq(self) -> None:
-        # TODO: CAP_PROP_* has no power line frequency option so we need platform-specific handling
-        pass
+        if self._cap is None:
+            raise RuntimeError("camera is not open")
+        freq = self._cfg.get("power_line_frequency", 0)
+        if freq == 0:
+            return
+        if sys.platform != "linux":
+            log.warning("power_line_frequency requires v4l2-ctl -- not supported on this platform")
+            return
+        device = int(self._cfg["device"])
+        try:
+            probe = subprocess.run(
+                ["v4l2-ctl", f"--device=/dev/video{device}", "--list-ctrls"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            if "power_line_frequency" not in probe.stdout:
+                log.warning("camera does not support power_line_frequency control")
+                return
+            subprocess.run(
+                ["v4l2-ctl", f"--device=/dev/video{device}",
+                 f"--set-ctrl=power_line_frequency={freq}"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            log.info("power line frequency set to %d", freq)
+        except FileNotFoundError:
+            log.warning("v4l2-ctl not found -- install v4l2-utils or run setup.sh")
+        except subprocess.CalledProcessError as exc:
+            log.warning("v4l2-ctl failed: %s", (exc.stderr or "").strip())

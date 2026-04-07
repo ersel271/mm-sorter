@@ -21,7 +21,7 @@ from src.vision.preprocess import PreprocessResult
 
 log = logging.getLogger(__name__)
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Features:
     """
     immutable feature vector computed from a single PreprocessResult.
@@ -38,6 +38,30 @@ class Features:
     circularity: float
     aspect_ratio: float
     solidity: float
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Features):
+            return NotImplemented
+        return (
+            self.mask_pixels == other.mask_pixels
+            and self.sat_mean == other.sat_mean
+            and self.val_mean == other.val_mean
+            and self.highlight_ratio == other.highlight_ratio
+            and np.array_equal(self.hue_hist, other.hue_hist)
+            and self.hue_peak_width == other.hue_peak_width
+            and self.texture_variance == other.texture_variance
+            and self.circularity == other.circularity
+            and self.aspect_ratio == other.aspect_ratio
+            and self.solidity == other.solidity
+        )
+
+    def __hash__(self) -> int:
+        return hash((
+            self.mask_pixels, self.sat_mean, self.val_mean,
+            self.highlight_ratio, self.hue_hist.tobytes(),
+            self.hue_peak_width, self.texture_variance,
+            self.circularity, self.aspect_ratio, self.solidity,
+        ))
 
 class FeatureExtractor:
     """

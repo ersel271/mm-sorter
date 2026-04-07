@@ -22,6 +22,13 @@ from config.constants import UART_SEPARATOR, UART_TERMINATOR
 
 log = logging.getLogger(__name__)
 
+# control packets that bookend a pipeline session
+PCK_START:        dict[str, Any] = {"msg": "START"}
+PCK_END_OK:       dict[str, Any] = {"msg": "END",    "err":   0}
+PCK_END_ERR:      dict[str, Any] = {"msg": "END",    "err":   1}
+PCK_FREEZE_START: dict[str, Any] = {"msg": "FREEZE", "state": 0}
+PCK_FREEZE_END:   dict[str, Any] = {"msg": "FREEZE", "state": 1}
+
 def build_packet(fields: dict[str, Any]) -> bytes:
     """
     serialise a dict of fields into an ASCII packet.

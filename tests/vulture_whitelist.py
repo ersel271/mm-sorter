@@ -1,4 +1,4 @@
-# vulture_whitelist.py
+# tests/vulture_whitelist.py
 
 from tests.fixtures.config_fixtures import *
 from tests.fixtures.events_fixtures import *

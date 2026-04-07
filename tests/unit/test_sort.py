@@ -2,7 +2,7 @@
 
 import sys
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import numpy as np
@@ -11,6 +11,8 @@ from config.constants import ColourID
 from sort import (
     PipelineState,
     StopReason,
+    PCK_END_ERR,
+    PCK_END_OK,
     _accumulate,
     _handle_gt,
     _make_uart_payload,
@@ -413,5 +415,29 @@ class TestTeardown:
         mock_uart = MagicMock()
         mock_event = MagicMock()
         teardown(None, None, mock_uart, mock_event)
+        mock_uart.send.assert_called_once_with(PCK_END_OK)
         mock_uart.close.assert_called_once()
         mock_event.stop.assert_called_once()
+
+    def test_sends_end_ok_before_close(self):
+        mock_uart = MagicMock()
+        manager = MagicMock()
+        manager.attach_mock(mock_uart.send, "send")
+        manager.attach_mock(mock_uart.close, "close")
+        teardown(None, None, mock_uart, MagicMock())
+        manager.assert_has_calls([call.send(PCK_END_OK), call.close()])
+
+    def test_sends_end_err_on_error(self):
+        mock_uart = MagicMock()
+        teardown(None, None, mock_uart, MagicMock(), error=True)
+        mock_uart.send.assert_called_once_with(PCK_END_ERR)
+
+    def test_sends_end_ok_on_clean_exit(self):
+        mock_uart = MagicMock()
+        teardown(None, None, mock_uart, MagicMock(), error=False)
+        mock_uart.send.assert_called_once_with(PCK_END_OK)
+
+    def test_end_sent_even_when_camera_and_plot_absent(self):
+        mock_uart = MagicMock()
+        teardown(None, None, mock_uart, MagicMock())
+        mock_uart.send.assert_called_once_with(PCK_END_OK)

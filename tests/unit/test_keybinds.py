@@ -66,6 +66,23 @@ class TestHandleKeyLog:
         handle_key(ord("l"), overlay)
         assert overlay._show_log is False
 
+@pytest.mark.smoke
+class TestHandleKeyFreeze:
+    """verify ctrl+f key toggles freeze mode and returns False."""
+
+    def test_ctrl_f_returns_false(self, overlay: Overlay) -> None:
+        assert handle_key(ord("f"), overlay) is False
+
+    def test_ctrl_f_toggles_freeze_on(self, overlay: Overlay) -> None:
+        assert overlay.frozen is False
+        handle_key(ord("f"), overlay)
+        assert overlay.frozen is True
+
+    def test_ctrl_f_toggles_freeze_off(self, overlay: Overlay) -> None:
+        handle_key(ord("f"), overlay)
+        handle_key(ord("f"), overlay)
+        assert overlay.frozen is False
+
 @pytest.mark.regression
 class TestHandleKeyUnknown:
     """verify unbound keys are silently ignored."""

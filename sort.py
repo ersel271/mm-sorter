@@ -16,10 +16,11 @@ Options:
   --log-level LEVEL     DEBUG, INFO, WARNING (default: INFO)
 
 Controls:
-    d   toggle debug mode
-    t   toggle sidebar menus (features, decision breakdown and stats)
-    l   toggle log menu
-    q   quit the application
+    d       toggle debug mode
+    f       toggle freeze mode
+    t       toggle sidebar menus (features, decision breakdown and stats)
+    l       toggle log menu
+    q       quit the application
 
 Run Modes:
     Live mode uses the camera as the frame source for real-time operation
@@ -37,9 +38,9 @@ import sys
 import time
 import logging
 import argparse
-from typing import Any
 from pathlib import Path
 from enum import StrEnum
+from typing import Any, cast
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
@@ -48,8 +49,8 @@ import numpy as np
 from config import Config
 from config.constants import ColourID, COLOUR_NAMES, OBJECT_ID_MAX
 
-from src.io import Camera, UARTSender
 from src.ui import Overlay, handle_key
+from src.io import Camera, UARTSender, PCK_START, PCK_END_OK, PCK_END_ERR, PCK_FREEZE_START, PCK_FREEZE_END
 from src.vision import Classifier, Decision, FeatureExtractor, Features, Preprocessor, PreprocessResult
 
 from utils.log import setup_logger
@@ -172,7 +173,9 @@ def _submit_plots(state: PipelineState) -> None:
 def acquire(frames_iter: Iterator | None, cam: Camera | None) -> np.ndarray | None:
     """step 1: read one frame from camera or inject source (None to skip)"""
     if frames_iter is not None:
-        return next(frames_iter)
+        return cast(np.ndarray, next(frames_iter))
+    if cam is None:
+        return None
     ok, raw = cam.read()
     if not ok or raw is None:
         return None
@@ -258,12 +261,14 @@ def teardown(
     cam: Camera | None,
     uart: UARTSender,
     worker: EventQueueWorker,
+    error: bool = False
 ) -> None:
     """stop background workers and close hardware resources"""
     if plot_worker is not None:
         plot_worker.stop()
     if cam is not None:
         cam.release()
+    uart.send(PCK_END_ERR if error else PCK_END_OK)
     uart.close()
     worker.stop()
 
@@ -285,6 +290,7 @@ def pipeline() -> int:
     classifier = Classifier(cfg)
     uart = UARTSender(cfg)
     uart.open()
+    uart.send(PCK_START)
 
     found_frames_min: int = cfg.system.get("found_frames_min", 3)
 
@@ -293,7 +299,7 @@ def pipeline() -> int:
         frames_iter, cam = _setup_frame_source(args, cfg, found_frames_min)
     except RuntimeError as exc:
         log.error("%s", exc)
-        teardown(None, None, uart, worker)
+        teardown(None, None, uart, worker, True)
         return 1
 
     gt_labels, gt_acc = _setup_gt(args)
@@ -310,6 +316,9 @@ def pipeline() -> int:
 
     # main pipeline loop
     try:
+        last_frame: np.ndarray | None = None
+        last_result: PreprocessResult | None = None
+
         with Overlay(cfg, metrics) as ov:
             while True:
                 if time.monotonic() >= state.timeout_at:
@@ -317,11 +326,22 @@ def pipeline() -> int:
                     break
 
                 t0 = time.monotonic()
+
+                if ov.frozen:
+                    if last_frame is not None and last_result is not None:
+                        state.frame_num += 1
+                        if display(last_frame, last_result, None, None, ov, uart, False):
+                            break
+                        if not ov.frozen:
+                            uart.send(PCK_FREEZE_END)
+                    continue
+
                 frame = acquire(frames_iter, cam)
                 if frame is None:
                     continue
 
                 result = preprocess(frame, prep)
+                last_frame, last_result = frame, result
                 is_record_frame = False
                 features = decision = None
 
@@ -345,6 +365,8 @@ def pipeline() -> int:
                 state.frame_num += 1
                 if display(frame, result, features, decision, ov, uart, is_record_frame):
                     break
+                if ov.frozen:
+                    uart.send(PCK_FREEZE_START)
 
     # teardown
     except KeyboardInterrupt:

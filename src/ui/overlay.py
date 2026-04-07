@@ -67,6 +67,7 @@ class Overlay:
         self._log_panel: LogPanel = LogPanel()
         self._sidebar_mode: int = 0  # 0 = features, 1 = rules, 2 = stats
         self._show_log: bool = False
+        self._frozen: bool = False
 
     @property
     def debug(self) -> bool:
@@ -80,6 +81,13 @@ class Overlay:
 
     def toggle_log(self) -> None:
         self._show_log = not self._show_log
+
+    @property
+    def frozen(self) -> bool:
+        return self._frozen
+
+    def toggle_freeze(self) -> None:
+        self._frozen = not self._frozen
 
     @property
     def fps(self) -> float:
@@ -110,6 +118,9 @@ class Overlay:
             self._last_features = features
         if decision is not None:
             self._last_decision = decision
+        if self._frozen:
+            features = self._last_features
+            decision = self._last_decision
 
         display = frame.copy()
 
@@ -137,6 +148,9 @@ class Overlay:
             sidebar = self._decision_panel.render(self._last_features, self._last_decision, h)
         else:
             sidebar = self._stats_panel.render(None, None, h)
+        if self._frozen:
+            self._draw_freeze_indicator(display)
+
         combined = np.hstack([display, sidebar])
 
         # draw history before log strip so centering uses only the camera frame height
@@ -240,6 +254,12 @@ class Overlay:
         ux = fw - total_uart_w - 10
         cv2.putText(display, uart_text,  (ux,           42), _FONT, 0.50, _TEXT_COLOUR, 1, cv2.LINE_AA)
         cv2.putText(display, uart_label, (ux + utw + 8, 42), _FONT, 0.50, uart_colour,  1, cv2.LINE_AA)
+
+    def _draw_freeze_indicator(self, display: np.ndarray) -> None:
+        text = "FROZEN"
+        fh, fw = display.shape[:2]
+        tw = cv2.getTextSize(text, _FONT, 0.7, 2)[0][0]
+        cv2.putText(display, text, (fw - tw - 10, fh - 10), _FONT, 0.7, _TEXT_COLOUR, 2, cv2.LINE_AA)
 
     def _draw_history(self, display: np.ndarray) -> None:
         history = list(self._history)
