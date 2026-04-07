@@ -32,6 +32,10 @@ FULL_DATA: dict = {
         "morph_erode_iter": 1,
         "morph_dilate_iter": 2,
         "min_area": 500,
+        "sat_min_dark": 25,
+        "sat_max_dark": 90,
+        "val_min_dark": 50,
+        "val_max_dark": 140,
     },
     "features": {
         "hue_bins": 180,
