@@ -122,11 +122,27 @@ class Preprocessor:
 
     def _make_mask(self, hsv: np.ndarray) -> np.ndarray:
         """
-        generate a binary mask by thresholding the saturation channel
-        and applying morphological cleanup.
+        generate a binary mask by thresholding the saturation channel with an
+        optional dark-object secondary path, followed by morphological cleanup
         """
         sat = hsv[:, :, 1]
-        _, mask = cv2.threshold(sat, self._cfg["sat_threshold"], 255, cv2.THRESH_BINARY)
+        val = hsv[:, :, 2]
+        _, primary = cv2.threshold(sat, self._cfg["sat_threshold"], 255, cv2.THRESH_BINARY)
+
+        # defaults (255, 255, 0, 0) disable the secondary path when these fields are absent from config
+        sat_min_dark  = self._cfg.get("sat_min_dark", 255)
+        sat_max_dark  = self._cfg.get("sat_max_dark", 255)
+        val_min_dark  = self._cfg.get("val_min_dark", 0)
+        val_max_dark  = self._cfg.get("val_max_dark", 0)
+        _, dark_sat_lower = cv2.threshold(sat, sat_min_dark, 255, cv2.THRESH_BINARY)
+        _, dark_sat_upper = cv2.threshold(sat, sat_max_dark, 255, cv2.THRESH_BINARY_INV)
+        _, dark_val_upper = cv2.threshold(val, val_max_dark, 255, cv2.THRESH_BINARY_INV)
+        _, dark_val_lower = cv2.threshold(val, val_min_dark - 1, 255, cv2.THRESH_BINARY)
+        secondary = cv2.bitwise_and(
+            cv2.bitwise_and(dark_sat_lower, dark_sat_upper),
+            cv2.bitwise_and(dark_val_upper, dark_val_lower),
+        )
+        mask = cv2.bitwise_or(primary, secondary)
 
         morph_k = self._cfg["morph_kernel"]
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (morph_k, morph_k))
