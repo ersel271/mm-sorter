@@ -187,6 +187,64 @@ class TestROI:
         assert y <= cy <= y + h
 
 @pytest.mark.smoke
+class TestDualMask:
+    """verify dual-threshold mask behaviour with and without dark path config."""
+    # _make_mask is tested directly, process() min_area filtering and morphology
+    # make pixel-level assertions on small synthetic patches unreliable
+
+    def _hsv_patch(self, h, s, v, shape=(200, 200)):
+        return np.full((*shape, 3), (h, s, v), dtype=np.uint8)
+
+    def test_single_threshold_dark_object_not_detected(self):
+        # sat_min_dark=255 (no uint8 exceeds it) and val_max_dark=0 disable the secondary path
+        p = Preprocessor(make_config(preprocess={
+            "sat_threshold": 180, "sat_min_dark": 255, "val_max_dark": 0,
+        }))
+        mask = p._make_mask(self._hsv_patch(15, 50, 90))
+        assert np.count_nonzero(mask) == 0
+
+    def test_dual_threshold_bright_object_via_primary(self):
+        p = Preprocessor(make_config(preprocess={
+            "sat_threshold": 180, "sat_min_dark": 25, "sat_max_dark": 90, "val_max_dark": 140,
+        }))
+        mask = p._make_mask(self._hsv_patch(15, 200, 180))
+        assert np.count_nonzero(mask) > 0
+
+    def test_dual_threshold_dark_object_via_secondary(self):
+        p = Preprocessor(make_config(preprocess={
+            "sat_threshold": 180, "sat_min_dark": 25, "sat_max_dark": 90,
+            "val_min_dark": 50, "val_max_dark": 140,
+        }))
+        mask = p._make_mask(self._hsv_patch(15, 50, 90))
+        assert np.count_nonzero(mask) > 0
+
+    def test_dual_threshold_rejects_bright_background(self):
+        p = Preprocessor(make_config(preprocess={
+            "sat_threshold": 180, "sat_min_dark": 25, "sat_max_dark": 90,
+            "val_min_dark": 50, "val_max_dark": 140,
+        }))
+        mask = p._make_mask(self._hsv_patch(0, 80, 200))
+        assert np.count_nonzero(mask) == 0
+
+    def test_dual_threshold_rejects_dark_background(self):
+        # dark matte background: sat~75, val~30, secondary path must reject it
+        p = Preprocessor(make_config(preprocess={
+            "sat_threshold": 180, "sat_min_dark": 25, "sat_max_dark": 90,
+            "val_min_dark": 50, "val_max_dark": 140,
+        }))
+        mask = p._make_mask(self._hsv_patch(15, 75, 30))
+        assert np.count_nonzero(mask) == 0
+
+    def test_dual_threshold_rejects_high_sat_object(self):
+        # right-corner bright area: sat=114 exceeds sat_max_dark=90, secondary must reject it
+        p = Preprocessor(make_config(preprocess={
+            "sat_threshold": 180, "sat_min_dark": 25, "sat_max_dark": 90,
+            "val_min_dark": 50, "val_max_dark": 140,
+        }))
+        mask = p._make_mask(self._hsv_patch(0, 114, 80))
+        assert np.count_nonzero(mask) == 0
+
+@pytest.mark.smoke
 class TestColourConversions:
     """verify HSV and grayscale conversions match expected shapes and types."""
 
