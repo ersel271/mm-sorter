@@ -30,4 +30,5 @@ def render_overlay(overlay: Overlay, found: bool = False, **kwargs) -> np.ndarra
         uart_sent=kwargs.get("uart_sent", 0),
         uart_dropped=kwargs.get("uart_dropped", 0),
         uart_connected=kwargs.get("uart_connected", False),
+        low_conf=kwargs.get("low_conf", False),
     )

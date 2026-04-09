@@ -8,11 +8,10 @@ import pytest
 import numpy as np
 
 from config.constants import ColourID
+from src.io import PCK_END_ERR, PCK_END_OK
 from sort import (
     PipelineState,
     StopReason,
-    PCK_END_ERR,
-    PCK_END_OK,
     _accumulate,
     _handle_gt,
     _make_uart_payload,
@@ -21,10 +20,11 @@ from sort import (
     _setup_gt,
     _setup_plot_worker,
     _submit_plots,
+    parse_args,
     acquire,
     classify,
+    display,
     extract,
-    parse_args,
     record,
     teardown,
 )
@@ -104,6 +104,9 @@ class TestPipelineState:
 
     def test_default_timeout_is_infinite(self):
         assert PipelineState().timeout_at == float("inf")
+
+    def test_default_low_conf_is_false(self):
+        assert PipelineState().low_conf is False
 
     def test_default_lists_empty(self):
         s = PipelineState()
@@ -342,24 +345,19 @@ class TestClassify:
 
 @pytest.mark.regression
 class TestResolveClass:
-    """verify _resolve_class returns label or NON_MM based on confidence threshold"""
+    """verify _resolve_class returns label or NON_MM based on low_conf flag"""
 
-    def test_above_threshold_returns_label(self):
-        decision = make_decision(label=ColourID.RED, confidence=0.9)
-        effective_class, low_conf = _resolve_class(decision, 1, threshold=0.5)
-        assert effective_class == int(ColourID.RED)
-        assert low_conf is False
+    def test_low_conf_false_returns_decision_label(self):
+        decision = make_decision(label=ColourID.RED)
+        assert _resolve_class(decision, 1, low_conf=False) == int(ColourID.RED)
 
-    def test_below_threshold_returns_non_mm(self):
-        decision = make_decision(label=ColourID.RED, confidence=0.3)
-        effective_class, low_conf = _resolve_class(decision, 1, threshold=0.5)
-        assert effective_class == int(ColourID.NON_MM)
-        assert low_conf is True
+    def test_low_conf_true_returns_non_mm(self):
+        decision = make_decision(label=ColourID.RED)
+        assert _resolve_class(decision, 1, low_conf=True) == int(ColourID.NON_MM)
 
-    def test_exactly_at_threshold_is_not_low_confidence(self):
-        decision = make_decision(confidence=0.5)
-        _, low_conf = _resolve_class(decision, 1, threshold=0.5)
-        assert low_conf is False
+    def test_low_conf_true_non_mm_input_stays_non_mm(self):
+        decision = make_decision(label=ColourID.NON_MM)
+        assert _resolve_class(decision, 1, low_conf=True) == int(ColourID.NON_MM)
 
 @pytest.mark.smoke
 @pytest.mark.regression
@@ -370,7 +368,7 @@ class TestRecord:
         return record(
             make_preprocess_result(), make_features(), make_decision(),
             time.monotonic(), MagicMock(), MagicMock(),
-            max_objects=max_objects, state=state, threshold=0.5,
+            max_objects=max_objects, state=state,
         )
 
     def test_returns_false_below_max(self):
@@ -441,3 +439,28 @@ class TestTeardown:
         mock_uart = MagicMock()
         teardown(None, None, mock_uart, MagicMock())
         mock_uart.send.assert_called_once_with(PCK_END_OK)
+
+@pytest.mark.smoke
+class TestDisplay:
+    """verify display() forwards low_conf to overlay render"""
+
+    def test_low_conf_true_forwarded(self):
+        ov = MagicMock()
+        ov.render.return_value = None
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        display(frame, make_preprocess_result(), None, make_decision(), ov, MagicMock(), False, low_conf=True)
+        assert ov.render.call_args.kwargs["low_conf"] is True
+
+    def test_low_conf_false_forwarded(self):
+        ov = MagicMock()
+        ov.render.return_value = None
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        display(frame, make_preprocess_result(), None, make_decision(), ov, MagicMock(), False, low_conf=False)
+        assert ov.render.call_args.kwargs["low_conf"] is False
+
+    def test_low_conf_defaults_to_false(self):
+        ov = MagicMock()
+        ov.render.return_value = None
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        display(frame, make_preprocess_result(), None, None, ov, MagicMock(), False)
+        assert ov.render.call_args.kwargs.get("low_conf", False) is False
