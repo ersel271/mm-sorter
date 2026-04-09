@@ -204,6 +204,33 @@ def classify(features: Features | None, classifier: Classifier, state: PipelineS
         log.warning("classification error on frame %d: %s", state.frame_num, exc)
         return None
 
+def _process_found_frame(
+    result: PreprocessResult,
+    extractor: FeatureExtractor,
+    classifier: Classifier,
+    worker: EventQueueWorker,
+    uart: UARTSender,
+    state: PipelineState,
+    found_frames_min: int,
+    threshold: float,
+    max_objects: int | None,
+    t0: float,
+) -> tuple[Features | None, Decision | None, bool, bool]:
+    """classify a found object; emits record event on the Nth consecutive frame.
+    returns (features, decision, is_record_frame, stop)"""
+    state.found_count += 1
+    is_record_frame = state.found_count == found_frames_min
+    if state.found_count == 1:
+        state.object_id = (state.object_id % OBJECT_ID_MAX) + 1
+    features = extract(result, extractor, state)
+    decision = classify(features, classifier, state)
+    state.low_conf = decision.confidence < threshold if decision is not None else False
+    if is_record_frame and features is not None and decision is not None:
+        if record(result, features, decision, t0, worker, uart, max_objects, state):
+            state.stop_reason = StopReason.MAX_OBJECTS
+            return features, decision, is_record_frame, True
+    return features, decision, is_record_frame, False
+
 def _resolve_class(decision: Decision, object_id: int, low_conf: bool) -> int:
     """return effective class; logs a warning when low_conf is True"""
     if low_conf:
@@ -344,27 +371,21 @@ def pipeline() -> int:
 
                 result = preprocess(frame, prep)
                 last_frame, last_result = frame, result
-                is_record_frame = False
                 features = decision = None
+                is_record_frame = False
                 state.low_conf = False
 
                 if not result.found:
                     state.found_count = 0
                 else:
-                    state.found_count += 1
-                    is_record_frame = state.found_count == found_frames_min
-                    if state.found_count == 1:
-                        state.object_id = (state.object_id % OBJECT_ID_MAX) + 1
                     # extract/classify run on every found frame (not just the record frame)
                     # so the overlay can display live features and decision while the object is present
-                    features = extract(result, extractor, state)
-                    decision = classify(features, classifier, state)
-                    state.low_conf = decision.confidence < threshold if decision is not None else False
-
-                    if is_record_frame and features is not None and decision is not None:
-                        if record(result, features, decision, t0, worker, uart, args.max_objects, state):
-                            state.stop_reason = StopReason.MAX_OBJECTS
-                            break
+                    features, decision, is_record_frame, stop = _process_found_frame(
+                        result, extractor, classifier, worker, uart, state,
+                        found_frames_min, threshold, args.max_objects, t0,
+                    )
+                    if stop:
+                        break
 
                 state.frame_num += 1
                 if display(frame, result, features, decision, ov, uart, is_record_frame, low_conf=state.low_conf):
