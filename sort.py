@@ -76,6 +76,7 @@ class StopReason(StrEnum):
 class PipelineState:
     object_id: int = 0
     frame_num: int = 0
+    low_conf: bool = False
     found_count: int = 0
     classified_count: int = 0
     stop_reason: StopReason = StopReason.USER_QUIT
@@ -203,15 +204,15 @@ def classify(features: Features | None, classifier: Classifier, state: PipelineS
         log.warning("classification error on frame %d: %s", state.frame_num, exc)
         return None
 
-def _resolve_class(decision: Decision, object_id: int, threshold: float) -> tuple[int, bool]:
-    """return (effective_class, low_confidence); logs a warning when confidence falls below threshold"""
-    if decision.confidence < threshold:
+def _resolve_class(decision: Decision, object_id: int, low_conf: bool) -> int:
+    """return effective class; logs a warning when low_conf is True"""
+    if low_conf:
         log.warning(
             "low confidence %.2f for object %d (%s), overriding to Non-M&M",
             decision.confidence, object_id, COLOUR_NAMES[decision.label],
         )
-        return int(ColourID.NON_MM), True
-    return int(decision.label), False
+        return int(ColourID.NON_MM)
+    return int(decision.label)
 
 def record(
     result: PreprocessResult,
@@ -222,12 +223,11 @@ def record(
     uart: UARTSender,
     max_objects: int | None,
     state: PipelineState,
-    threshold: float,
 ) -> bool:
     """step 5: emit event, send UART, accumulate plots and GT (True if limit reached)"""
-    effective_class, low_conf = _resolve_class(decision, state.object_id, threshold)
+    effective_class = _resolve_class(decision, state.object_id, state.low_conf)
     frame_ms = (time.monotonic() - t0) * 1000
-    worker.enqueue(make_event(state.object_id, result, features, decision, frame_ms, t0, effective_class, low_conf))
+    worker.enqueue(make_event(state.object_id, result, features, decision, frame_ms, t0, effective_class, state.low_conf))
     uart.send(_make_uart_payload(state, result, decision, effective_class))
     state.classified_count += 1
     _accumulate(state, decision)
@@ -243,6 +243,7 @@ def display(
     ov: Overlay,
     uart: UARTSender,
     is_record_frame: bool,
+    low_conf: bool = False,
 ) -> bool:
     """step 6: render overlay and show frame (True if user requested quit)"""
     frame_out = ov.render(
@@ -251,6 +252,7 @@ def display(
         uart_dropped=uart.packets_dropped,
         uart_connected=uart.is_open,
         record=is_record_frame,
+        low_conf=low_conf,
     )
     if frame_out is not None:
         return handle_key(ov.show(frame_out), ov)
@@ -344,6 +346,7 @@ def pipeline() -> int:
                 last_frame, last_result = frame, result
                 is_record_frame = False
                 features = decision = None
+                state.low_conf = False
 
                 if not result.found:
                     state.found_count = 0
@@ -356,14 +359,15 @@ def pipeline() -> int:
                     # so the overlay can display live features and decision while the object is present
                     features = extract(result, extractor, state)
                     decision = classify(features, classifier, state)
+                    state.low_conf = decision.confidence < threshold if decision is not None else False
 
                     if is_record_frame and features is not None and decision is not None:
-                        if record(result, features, decision, t0, worker, uart, args.max_objects, state, threshold):
+                        if record(result, features, decision, t0, worker, uart, args.max_objects, state):
                             state.stop_reason = StopReason.MAX_OBJECTS
                             break
 
                 state.frame_num += 1
-                if display(frame, result, features, decision, ov, uart, is_record_frame):
+                if display(frame, result, features, decision, ov, uart, is_record_frame, low_conf=state.low_conf):
                     break
                 if ov.frozen:
                     uart.send(PCK_FREEZE_START)
