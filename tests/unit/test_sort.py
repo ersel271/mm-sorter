@@ -15,6 +15,7 @@ from sort import (
     _accumulate,
     _handle_gt,
     _make_uart_payload,
+    _process_found_frame,
     _resolve_class,
     _setup_frame_source,
     _setup_gt,
@@ -439,6 +440,53 @@ class TestTeardown:
         mock_uart = MagicMock()
         teardown(None, None, mock_uart, MagicMock())
         mock_uart.send.assert_called_once_with(PCK_END_OK)
+
+@pytest.mark.smoke
+@pytest.mark.regression
+class TestProcessFoundFrame:
+    """verify _process_found_frame classifies, sets state, and signals stop correctly"""
+
+    def _call(self, state, threshold=0.5, max_objects=None):
+        mock_extractor = MagicMock()
+        mock_extractor.extract.return_value = make_features()
+        mock_classifier = MagicMock()
+        mock_classifier.classify.return_value = make_decision()
+        return _process_found_frame(
+            make_preprocess_result(), mock_extractor, mock_classifier,
+            MagicMock(), MagicMock(), state,
+            found_frames_min=3, threshold=threshold,
+            max_objects=max_objects, t0=time.monotonic(),
+        )
+
+    def test_increments_found_count(self):
+        state = PipelineState()
+        self._call(state)
+        assert state.found_count == 1
+
+    def test_sets_object_id_on_first_found(self):
+        state = PipelineState(object_id=0)
+        self._call(state)
+        assert state.object_id == 1
+
+    def test_does_not_reset_object_id_on_subsequent_found(self):
+        state = PipelineState(object_id=1, found_count=1)
+        self._call(state)
+        assert state.object_id == 1
+
+    def test_stop_false_when_below_max(self):
+        state = PipelineState(object_id=1)
+        _, _, _, stop = self._call(state, max_objects=10)
+        assert stop is False
+
+    def test_is_record_frame_true_at_found_frames_min(self):
+        state = PipelineState(object_id=1, found_count=2)
+        _, _, is_record_frame, _ = self._call(state)
+        assert is_record_frame is True
+
+    def test_is_record_frame_false_before_min(self):
+        state = PipelineState(object_id=1, found_count=0)
+        _, _, is_record_frame, _ = self._call(state)
+        assert is_record_frame is False
 
 @pytest.mark.smoke
 class TestDisplay:
