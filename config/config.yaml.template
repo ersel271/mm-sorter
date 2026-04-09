@@ -6,54 +6,54 @@
 # (O) optional -- has a built-in default. omit if the default is acceptable
 
 camera:
-  device: 2                  # (R) camera index (0, 1, 2 ...)
-  width: 1920                # (R) capture width in pixels
-  height: 1080               # (R) capture height in pixels
-  fps: 30                    # (R) target frame rate
+  device: 2                  # (R) camera index (>= 0)
+  width: 1920                # (R) capture width in pixels (> 0)
+  height: 1080               # (R) capture height in pixels (> 0)
+  fps: 30                    # (R) target frame rate (>= 1)
   format: MJPG               # (R) pixel format (MJPG or YUYV)
   autofocus: false           # (R) set true to enable continuous autofocus
   focus: 200                 # (R) manual focus value (1--1023), ignored when autofocus is true
   auto_exposure: 3           # (O) 3 = aperture priority (auto), 1 = manual; default 3
-  exposure: 157              # (O) manual exposure time, only used when auto_exposure is 1
+  exposure: 157              # (O) manual exposure time (> 0), only used when auto_exposure is 1
   auto_wb: true              # (O) automatic white balance; default true
-  wb_temperature: 4600       # (O) fixed white balance in kelvin, only used when auto_wb is false
+  wb_temperature: 4600       # (O) fixed white balance in kelvin (1000--10000), only used when auto_wb is false
   power_line_frequency: 1    # (O) anti-flicker: 0 = disabled, 1 = 50Hz, 2 = 60Hz; default 0
 
 preprocess:
   blur_kernel: 5             # (R) gaussian blur kernel size, must be odd
   sat_threshold: 40          # (R) minimum saturation to consider a pixel as object
-  morph_kernel: 5            # (R) morphological operation kernel size
+  morph_kernel: 5            # (R) morphological operation kernel size (>= 1)
   min_area: 500              # (R) minimum contour area in pixels to accept as an object
   roi_enabled: false         # (O) true to crop a centre region from the frame; default false
-  roi_fraction: 0.9          # (O) fraction of frame to keep when roi is enabled (0.0--1.0)
-  morph_erode_iter: 1        # (O) erosion iterations for mask cleanup; default 1
-  morph_dilate_iter: 2       # (O) dilation iterations for mask cleanup; default 2
-  sat_min_dark: 25           # (O) secondary path sat lower bound; default (255, disabled)
-  sat_max_dark: 90           # (O) secondary path sat upper bound; default (255, no ceiling)
-  val_min_dark: 50           # (O) secondary path brightness floor; default (0, no floor)
-  val_max_dark: 140          # (O) secondary path brightness ceiling; default (0, disabled)
+  roi_fraction: 0.9          # (O) fraction of frame to keep when roi is enabled (0.0, 1.0]; default 0.9
+  morph_erode_iter: 1        # (O) erosion iterations for mask cleanup (>= 0); default 1
+  morph_dilate_iter: 2       # (O) dilation iterations for mask cleanup (>= 0); default 2
+  sat_min_dark: 25           # (O) secondary path sat lower bound (0--255); default (255, disabled)
+  sat_max_dark: 90           # (O) secondary path sat upper bound (0--255); default (255, no ceiling)
+  val_min_dark: 50           # (O) secondary path brightness floor (0--255); default (0, no floor)
+  val_max_dark: 140          # (O) secondary path brightness ceiling (0--255); default (0, disabled)
 
 features:
-  hue_bins: 180              # (R) number of bins for the hue histogram
-  hue_smooth_sigma: 3        # (R) gaussian smoothing sigma for hue histogram
-  highlight_value: 240       # (R) V channel threshold for specular highlight detection
-  hue_peak_ratio: 0.15       # (R) fraction of peak value used to measure dominant hue width
+  hue_bins: 180              # (R) number of bins for the hue histogram (>= 1)
+  hue_smooth_sigma: 3        # (R) gaussian smoothing sigma for hue histogram (>= 0); 0 disables smoothing
+  highlight_value: 240       # (R) V channel threshold for specular highlight detection (0--255)
+  hue_peak_ratio: 0.15       # (R) fraction of peak value used to measure dominant hue width (0.0--1.0)
 
 thresholds:
   # stage 1: foreign object rejection
-  sat_min: 60                # (R) minimum mean saturation to accept as M&M
+  sat_min: 60                # (R) minimum mean saturation to accept as M&M (> 0)
   highlight_max: 0.20        # (R) maximum specular highlight ratio (0.0--1.0)
-  hue_width_min: 8           # (R) minimum hue peak width in bins
-  texture_max: 500.0         # (R) maximum laplacian variance (texture density)
+  hue_width_min: 8           # (R) minimum hue peak width in bins (> 0)
+  texture_max: 500.0         # (R) maximum laplacian variance (texture density) (> 0)
 
   # stage 2: shape validation
   circularity_min: 0.75      # (R) minimum circularity (0.0--1.0), ideal circle = 1.0
-  aspect_ratio_max: 1.35     # (R) maximum aspect ratio, circle = 1.0
+  aspect_ratio_max: 1.35     # (R) maximum aspect ratio (>= 1.0), circle = 1.0
   solidity_min: 0.90         # (R) minimum solidity (0.0--1.0), convex shape = 1.0
 
   # stage 3: colour matching
-  colour_confidence_min: 0.15     # (R) minimum hue overlap fraction to accept a colour
-  colour_ambiguity_epsilon: 0.10  # (R) minimum confidence gap between top two colour candidates
+  colour_confidence_min: 0.15     # (R) minimum hue overlap fraction to accept a colour (0.0--1.0)
+  colour_ambiguity_epsilon: 0.10  # (R) minimum confidence gap between top two colour candidates (0.0--1.0)
 
   # stage 4: accept/reject decision
   decision_min: 0.5               # (R) minimum confidence to classify as a colour (0.0--1.0)
@@ -91,13 +91,13 @@ colours:
 uart:
   port: /dev/ttyUSB0         # (R) serial port -- linux: /dev/ttyUSBx, windows: COMx
   baud: 115200               # (R) baud rate, must be at least 9600
-  timeout: 0.1               # (O) serial read timeout in seconds; default 0.1
+  timeout: 0.1               # (O) serial read timeout in seconds (>= 0); default 0.1
 
 system:
   log_dir: data/logs         # (R) directory for runtime log files
   event_dir: data/events     # (R) directory for structured vision event logs
   plot_dir: data/plots       # (R) directory for offline analysis plot exports
-  log_queue_size: 256        # (R) bounded queue size for async logging
-  found_frames_min: 3        # (O) consecutive found frames before recording; default 3
+  log_queue_size: 256        # (R) bounded queue size for async logging (>= 1)
+  found_frames_min: 3        # (O) consecutive found frames before recording (>= 1); default 3
   display_enabled: true      # (O) show live annotated video window; default true
-  display_scale: 1           # (O) scale factor for the display window; default 1.0
+  display_scale: 1           # (O) scale factor for the display window (> 0); default 1.0
