@@ -10,7 +10,7 @@ from src.ui.panel import PANEL_W
 from config.constants import ColourID
 from utils.metrics import RunningMetrics
 from tests.helpers.config_helpers import make_config
-from tests.helpers.vision_helpers import make_decision
+from tests.helpers.vision_helpers import make_decision, make_preprocess_result
 from tests.helpers.overlay_helpers import NOT_FOUND, render_overlay
 
 @pytest.mark.smoke
@@ -229,3 +229,33 @@ class TestContextManager:
     def test_context_manager_does_not_crash(self) -> None:
         with Overlay(make_config(), RunningMetrics()) as ov:
             assert ov is not None
+
+@pytest.mark.smoke
+class TestLowConfidenceDisplay:
+    """verify low-confidence decisions render as Non-M&M on banner and history"""
+
+    def test_low_conf_decision_does_not_crash(self, overlay: Overlay) -> None:
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        dec = make_decision(label=ColourID.RED, confidence=0.3)
+        out = overlay.render(frame, make_preprocess_result(), None, dec)
+        assert isinstance(out, np.ndarray)
+
+    def test_high_conf_decision_does_not_crash(self, overlay: Overlay) -> None:
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        dec = make_decision(label=ColourID.RED, confidence=0.9)
+        out = overlay.render(frame, make_preprocess_result(), None, dec)
+        assert isinstance(out, np.ndarray)
+
+    def test_low_conf_in_history_renders_without_crash(self, overlay: Overlay) -> None:
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        dec = make_decision(label=ColourID.RED, confidence=0.3)
+        result = make_preprocess_result()
+        overlay.render(frame, result, None, dec, record=True)
+        out = overlay.render(frame, result, None, dec)
+        assert isinstance(out, np.ndarray)
+
+    def test_all_colour_ids_low_conf_do_not_crash(self, overlay: Overlay) -> None:
+        frame = np.zeros((100, 100, 3), dtype=np.uint8)
+        for colour_id in ColourID:
+            dec = make_decision(label=colour_id, confidence=0.3)
+            assert overlay.render(frame, make_preprocess_result(), None, dec) is not None

@@ -106,7 +106,7 @@ class TestPipelineFullRun:
         ])
         call_count = 0
 
-        def mock_display(frame, result, features, decision, ov, uart, is_record_frame):
+        def mock_display(frame, result, features, decision, ov, uart, is_record_frame, low_conf=False):
             nonlocal call_count
             call_count += 1
             if call_count == 1:

@@ -120,7 +120,7 @@ class TestRecordChain:
         record(
             make_preprocess_result(), make_features(), make_decision(),
             time.monotonic(), MagicMock(), MagicMock(),
-            max_objects=None, state=state, threshold=0.5,
+            max_objects=None, state=state,
         )
         assert state.classified_count == 1
         assert len(state.gt_acc) == 1
@@ -131,7 +131,7 @@ class TestRecordChain:
         record(
             make_preprocess_result(), make_features(), make_decision(),
             time.monotonic(), MagicMock(), mock_uart,
-            max_objects=None, state=state, threshold=0.5,
+            max_objects=None, state=state,
         )
         mock_uart.send.assert_called_once()
 
@@ -141,6 +141,6 @@ class TestRecordChain:
         record(
             make_preprocess_result(), make_features(), make_decision(),
             time.monotonic(), mock_worker, MagicMock(),
-            max_objects=None, state=state, threshold=0.5,
+            max_objects=None, state=state,
         )
         mock_worker.enqueue.assert_called_once()
