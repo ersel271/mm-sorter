@@ -18,10 +18,9 @@ from pathlib import Path
 
 import yaml
 
-from config.validate import validate, ConfigError  # ConfigError re-exported for __init__.py
+from config.validate import validate, ConfigError
 
 log = logging.getLogger(__name__)
-
 
 class Config:
     """
@@ -78,4 +77,3 @@ class Config:
             raise ConfigError(f"config root must be a mapping, got {type(data).__name__}")
 
         return data
-
