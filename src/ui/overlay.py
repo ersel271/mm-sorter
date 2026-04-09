@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 
 from config import Config
-from config.constants import COLOUR_NAMES
+from config.constants import COLOUR_NAMES, ColourID
 from src.vision.features import Features
 from src.vision.preprocess import PreprocessResult
 from src.vision.rule import Decision
@@ -55,11 +55,12 @@ class Overlay:
     def __init__(self, config: Config, metrics: RunningMetrics) -> None:
         self._cfg = config.system
         self._timestamps: collections.deque[float] = collections.deque(maxlen=_FPS_WINDOW_LEN)
-        self._history: collections.deque[Decision] = collections.deque(maxlen=_HISTORY_LEN)
+        self._history: collections.deque[tuple[Decision, bool]] = collections.deque(maxlen=_HISTORY_LEN)
         self._window_open: bool = False
         self._debug: bool = True
         self._last_features: Features | None = None
         self._last_decision: Decision | None = None
+        self._last_low_conf: bool = False
         self._feature_panel: FeaturePanel = FeaturePanel()
         self._decision_panel: DecisionPanel = DecisionPanel(config)
         self._metrics: RunningMetrics = metrics
@@ -108,12 +109,14 @@ class Overlay:
         uart_dropped: int = 0,
         uart_connected: bool = False,
         record: bool = True,
+        low_conf: bool = False,
     ) -> np.ndarray | None:
         if not self._cfg.get("display_enabled", True):
             return None
         self._timestamps.append(time.monotonic())
+        self._last_low_conf = low_conf
         if decision is not None and record:
-            self._history.append(decision)
+            self._history.append((decision, low_conf))
         if features is not None:
             self._last_features = features
         if decision is not None:
@@ -121,12 +124,13 @@ class Overlay:
         if self._frozen:
             features = self._last_features
             decision = self._last_decision
+            low_conf = self._last_low_conf
 
         display = frame.copy()
 
         # always-on: core detection feedback
         self._draw_bbox(display, result)
-        self._draw_label_banner(display, result, decision)
+        self._draw_label_banner(display, result, decision, low_conf)
 
         # debug-only: diagnostic overlays
         if self._debug:
@@ -215,12 +219,22 @@ class Overlay:
             return
         cv2.circle(display, result.centroid, 5, _CENTROID_COLOUR, -1)
 
-    def _draw_label_banner(self, display: np.ndarray, result: PreprocessResult, decision: Decision | None) -> None:
+    def _draw_label_banner(
+        self, display: np.ndarray, result: PreprocessResult,
+        decision: Decision | None, low_conf: bool = False,
+    ) -> None:
         if not result.found or result.bbox is None:
             return
         if decision is None:
             text = "---"
             colour = _DIM_COLOUR
+        elif low_conf:
+            colour_name = COLOUR_NAMES[decision.label].lower()
+            text = (
+                f"{COLOUR_NAMES[ColourID.NON_MM]}  {decision.confidence:.0%}"
+                f"  [low-confidence: {colour_name}]"
+            )
+            colour = LABEL_COLOURS[ColourID.NON_MM]
         else:
             text = f"{COLOUR_NAMES[decision.label]}  {decision.confidence:.0%}  [{decision.rule}]"
             colour = LABEL_COLOURS[decision.label]
@@ -273,7 +287,8 @@ class Overlay:
         total_h = n * bh + (n - 1) * gap
         y0      = (fh - total_h) // 2
         x0      = margin
-        for i, dec in enumerate(history):
+        for i, (dec, lc) in enumerate(history):
             y = y0 + i * (bh + gap)
-            cv2.rectangle(display, (x0, y), (x0 + bw, y + bh), LABEL_COLOURS[dec.label], -1)
+            sq_colour = LABEL_COLOURS[ColourID.NON_MM] if lc else LABEL_COLOURS[dec.label]
+            cv2.rectangle(display, (x0, y), (x0 + bw, y + bh), sq_colour, -1)
             cv2.rectangle(display, (x0, y), (x0 + bw, y + bh), _DIM_COLOUR, 1)
