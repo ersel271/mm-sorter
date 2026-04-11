@@ -9,36 +9,13 @@ cd mm-sorter
 
 #### 2. create a virtualenv (and activate it) 
 
-Linux / macOS:
-
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-Windows:
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-#### 3. install dependencies (can be skipped on Linux / macOS since setup script installs them)
-
-for dev environment (includes test tools)
-
-```bash
-pip install -r requirements-dev.txt
-```
-
-for prod environment (only runtime dependencies):
-
-```bash
-pip install -r requirements.txt
-```
-
 #### 4. run the setup script
-
+setup script installs the requirements and creates some directories. it can adapt both dev and prod environments
 ```bash
 ./tools/setup.sh dev
 ```
@@ -46,25 +23,16 @@ pip install -r requirements.txt
 #### 5. create a configuration from template
 
 copy template configuration
-
-Linux / macOS:
-
 ```bash
 cp config/config.yaml.template config/config.yaml
 ```
 
-Windows:
-
-```cmd
-copy config\config.yaml.template config\config.yaml
-```
-
-then modify camera and uart settings for your specific setup.
+then modify any field for your specific setup
 
 #### 6. run the tests
 
 ```bash
-python -m pytest
+pytest
 ```
 
 to run with coverage and HTML reports:
@@ -73,4 +41,17 @@ to run with coverage and HTML reports:
 ./tools/run_tests.sh
 ```
 
-reports are written to the `_report/` directory.
+reports are written to the `_report/` directory
+
+#### 7. finally, run the pipeline
+
+if there are no problem in the test results, run the pipeline itself with
+```bash
+python3 sort.py
+```
+
+you can find about options either via:
+```bash
+python3 sort.py --help
+```
+however, for a more detailed explanation about all the controls, reading the `sort.py` file docstring is recommended
