@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# tools/collect_samples.py
+# tools/cal/collect_samples.py
 """
 Labelled sample collection tool for the M&M sorter dataset.
 
@@ -9,11 +9,12 @@ readable manifest file. Supports automatic geometry extraction via saturation
 thresholding or manual bbox drawing via mouse drag on the preview window.
 
 The tool is standalone and does not depend on any project modules.
-Only OpenCV and NumPy are required.
+OpenCV, NumPy, and optionally PyYAML are required.
 
 Usage:
-    python tools/collect_samples.py [--device DEVICE] [--output-dir OUTPUT_DIR] 
-                                    [--clear] [--bbox-mode {none,auto,manual}]
+    python collect_samples.py [--device DEVICE] [--output-dir OUTPUT_DIR]
+                              [--clear] [--bbox-mode {none,auto,manual}]
+                              [--config CONFIG] [--no-session]
 
 Procedure:
     1. Place a single M&M (or negative sample) in view of the camera.
@@ -48,16 +49,22 @@ bbox is drawn on the preview window but converted to full resolution coords
 before being written to the manifest.
 """
 
-import os
-import json
-import shutil
-import argparse
 import datetime
+import json
+import os
+import shutil
+import sys
+import argparse
 
 import cv2
 import numpy as np
 
-# override these if the defaults feel too fast or too slow
+sys.path.insert(0, os.path.dirname(__file__))
+import _common
+
+log = _common.get_logger("collect_samples")
+
+# camera defaults, override with --config
 CAMERA_WIDTH = 1920
 CAMERA_HEIGHT = 1080
 CAMERA_FPS = 30
@@ -65,8 +72,8 @@ PREVIEW_SCALE = 0.85
 
 # auto geometry extraction parameters, tuned for matte background + coloured objects
 AUTO_BLUR_K = 5
-AUTO_SAT_THRESH = 60
-AUTO_MORPH_K = 7
+AUTO_SAT_THRESH = 40
+AUTO_MORPH_K = 5
 AUTO_ERODE_ITER = 1
 AUTO_DILATE_ITER = 2
 AUTO_MIN_AREA = 500
@@ -95,30 +102,25 @@ KEY_TO_LABEL: dict[int, str] = {
 MANIFEST_FILE = "manifest.jsonl"
 IMAGE_EXT = ".png"
 
+def _load_config(path: str) -> dict:
+    import yaml
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
 def extract_geometry(frame: np.ndarray) -> tuple[list | None, list | None, float | None]:
     """
     attempt saturation-based contour extraction on a full resolution BGR frame.
     returns (bbox, centroid, area) or (None, None, None) on failure.
     bbox is [x, y, w, h], centroid is [cx, cy], both in original frame coords.
     """
-    blurred = cv2.GaussianBlur(frame, (AUTO_BLUR_K, AUTO_BLUR_K), 0)
-    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    sat = hsv[:, :, 1]
-    _, mask = cv2.threshold(sat, AUTO_SAT_THRESH, 255, cv2.THRESH_BINARY)
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (AUTO_MORPH_K, AUTO_MORPH_K))
-    mask = cv2.erode(mask, kernel, iterations=AUTO_ERODE_ITER)
-    mask = cv2.dilate(mask, kernel, iterations=AUTO_DILATE_ITER)
-
+    mask = _common.extract_mask(frame, AUTO_BLUR_K, AUTO_SAT_THRESH, AUTO_MORPH_K, AUTO_ERODE_ITER, AUTO_DILATE_ITER)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         return None, None, None
-
     largest = max(contours, key=cv2.contourArea)
     area = cv2.contourArea(largest)
     if area < AUTO_MIN_AREA:
         return None, None, None
-
     x, y, w, h = cv2.boundingRect(largest)
     m = cv2.moments(largest)
     if m["m00"] > 0:
@@ -127,7 +129,6 @@ def extract_geometry(frame: np.ndarray) -> tuple[list | None, list | None, float
     else:
         pt = largest[0][0]
         cx, cy = int(pt[0]), int(pt[1])
-
     return [x, y, w, h], [cx, cy], float(area)
 
 def ensure_dirs(output_dir: str) -> None:
@@ -144,7 +145,7 @@ def append_manifest(output_dir: str, entry: dict) -> bool:
             f.write(json.dumps(entry) + "\n")
         return True
     except OSError as e:
-        print(f"error: failed to write manifest entry: {e}")
+        log.info(f"error: failed to write manifest entry: {e}")
         return False
 
 def bbox_centroid(bbox: list[int]) -> list[int]:
@@ -182,16 +183,13 @@ def handle_mouse(event: int, x: int, y: int, flags: int, param: dict) -> None:
     state = param
     if state.get("bbox_mode") != "manual":
         return
-
     if event == cv2.EVENT_LBUTTONDOWN:
         state["drawing"] = True
         state["start"] = (x, y)
         state["end"] = (x, y)
-
     elif event == cv2.EVENT_MOUSEMOVE:
         if state["drawing"]:
             state["end"] = (x, y)
-
     elif event == cv2.EVENT_LBUTTONUP:
         state["drawing"] = False
         state["end"] = (x, y)
@@ -236,7 +234,7 @@ def save_sample(
 
     ok = cv2.imwrite(abs_path, frame)
     if not ok:
-        print(f"error: failed to save image to {abs_path}")
+        log.info(f"error: failed to save image to {abs_path}")
         return False, None
 
     h, w = frame.shape[:2]
@@ -323,36 +321,76 @@ def main() -> int:
     parser.add_argument("--output-dir", default="data/samples", help="dataset root directory")
     parser.add_argument("--clear", action="store_true", help="delete all existing samples before starting")
     parser.add_argument("--bbox-mode", choices=["none", "auto", "manual"], default="auto", help="geometry extraction mode")
+    parser.add_argument("--config", default=None, help="path to config yaml (optional)")
+    parser.add_argument("--no-session", action="store_true", help="skip session.json read")
     args = parser.parse_args()
+
+    global AUTO_BLUR_K, AUTO_SAT_THRESH, AUTO_MORPH_K, AUTO_ERODE_ITER, AUTO_DILATE_ITER, AUTO_MIN_AREA
+
+    device = args.device
+    width = CAMERA_WIDTH
+    height = CAMERA_HEIGHT
+    fps = CAMERA_FPS
+
+    if args.config:
+        cfg = _load_config(args.config)
+        cam = cfg.get("camera", {})
+        device = cam.get("device", device)
+        width = cam.get("width", width)
+        height = cam.get("height", height)
+        fps = cam.get("fps", fps)
+        pre = cfg.get("preprocess", {})
+        AUTO_BLUR_K = pre.get("blur_kernel", AUTO_BLUR_K)
+        AUTO_SAT_THRESH = pre.get("sat_threshold", AUTO_SAT_THRESH)
+        AUTO_MORPH_K = pre.get("morph_kernel", AUTO_MORPH_K)
+        AUTO_ERODE_ITER = pre.get("morph_erode_iter", AUTO_ERODE_ITER)
+        AUTO_DILATE_ITER = pre.get("morph_dilate_iter", AUTO_DILATE_ITER)
+        AUTO_MIN_AREA = pre.get("min_area", AUTO_MIN_AREA)
 
     if args.clear and os.path.exists(args.output_dir):
         shutil.rmtree(args.output_dir)
-        print(f"cleared {args.output_dir}")
+        log.info(f"cleared {args.output_dir}")
 
     ensure_dirs(args.output_dir)
 
-    cap = cv2.VideoCapture(args.device)
-    if not cap.isOpened():
-        print(f"error: cannot open camera device {args.device}")
+    try:
+        cap = _common.open_camera(device, width, height, fps)
+    except OSError as e:
+        log.info(f"error: {e}")
         return 1
 
-    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
-    cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
+    # apply focus and wb from session, then from config (session takes priority)
+    focus_to_apply = None
+    wb_to_apply = None
+    if args.config:
+        cam = _load_config(args.config).get("camera", {})
+        focus_to_apply = cam.get("focus")
+        wb_to_apply = cam.get("wb_temperature")
+    if not args.no_session:
+        session = _common.load_session()
+        if "focus" in session:
+            focus_to_apply = session["focus"]
+        if "wb_temperature" in session:
+            wb_to_apply = session["wb_temperature"]
+    if focus_to_apply is not None:
+        _common.apply_focus(cap, focus_to_apply)
+        log.info(f"  focus applied: {focus_to_apply}")
+    if wb_to_apply is not None:
+        _common.apply_wb_temperature(cap, wb_to_apply)
+        log.info(f"  wb_temperature applied: {wb_to_apply}")
 
-    print("sample collection started")
-    print(f"  device:    {args.device}")
-    print(f"  output:    {args.output_dir}")
-    print(f"  bbox mode: {args.bbox_mode}")
-    print(f"  controls:  0-6=label  c=capture  n=clear  r=reset bbox  q=quit")
-    print()
+    log.info("sample collection started")
+    log.info(f"  device:    {device}")
+    log.info(f"  output:    {args.output_dir}")
+    log.info(f"  bbox mode: {args.bbox_mode}")
+    log.info(f"  controls:  0-6=label  c=capture  n=clear  r=reset bbox  q=quit")
+    log.info("")
 
     mouse_state: dict = {
         "bbox_mode": args.bbox_mode,
         "scale": PREVIEW_SCALE,
-        "frame_w": CAMERA_WIDTH,
-        "frame_h": CAMERA_HEIGHT,
+        "frame_w": width,
+        "frame_h": height,
         "drawing": False,
         "start": None,
         "end": None,
@@ -381,7 +419,6 @@ def main() -> int:
         if args.bbox_mode == "auto":
             bbox, centroid, _ = extract_geometry(frame)
             if bbox is not None:
-                # scale coordinates for preview display
                 sx, sy = PREVIEW_SCALE, PREVIEW_SCALE
                 px, py, pw, ph = bbox
                 preview_bbox = [int(px * sx), int(py * sy), int(pw * sx), int(ph * sy)]
@@ -410,49 +447,49 @@ def main() -> int:
 
         elif key in KEY_TO_LABEL:
             current_label = KEY_TO_LABEL[key]
-            print(f"  label selected: {current_label}")
+            log.info(f"  label selected: {current_label}")
 
         elif key == ord("n"):
             current_label = None
-            print("  label cleared")
+            log.info("  label cleared")
 
         elif key == ord("r"):
             mouse_state["bbox_preview"] = None
             mouse_state["bbox_full"] = None
             mouse_state["drawing"] = False
-            print("  manual bbox cleared")
+            log.info("  manual bbox cleared")
 
         elif key == ord("c"):
             if current_label is None:
-                print("warning: no label selected, capture skipped")
+                log.info("warning: no label selected, capture skipped")
                 continue
             if args.bbox_mode == "manual" and mouse_state["bbox_full"] is None:
-                print("warning: no bbox drawn, capture skipped")
+                log.info("warning: no bbox drawn, capture skipped")
                 continue
             manual_full = mouse_state["bbox_full"] if args.bbox_mode == "manual" else None
             manual_cent = bbox_centroid(manual_full) if manual_full else None
             saved, rel_path = save_sample(
-                frame, current_label, args.output_dir, args.device, args.bbox_mode,
+                frame, current_label, args.output_dir, device, args.bbox_mode,
                 manual_bbox=manual_full,
                 manual_centroid=manual_cent,
             )
             if saved:
                 session_counts[current_label] += 1
                 total = session_counts[current_label]
-                print(f"  saved: {current_label} (session total: {total})")
-                print(f"  file:  {rel_path}")
+                log.info(f"  saved: {current_label} (session total: {total})")
+                log.info(f"  file:  {rel_path}")
 
     cap.release()
     cv2.destroyAllWindows()
 
-    print()
-    print("session summary:")
+    log.info("")
+    log.info("session summary:")
     for label, count in session_counts.items():
         if count > 0:
-            print(f"  {label}: {count}")
+            log.info(f"  {label}: {count}")
 
     total = sum(session_counts.values())
-    print(f"  total captured: {total}")
+    log.info(f"  total captured: {total}")
     return 0
 
 if __name__ == "__main__":

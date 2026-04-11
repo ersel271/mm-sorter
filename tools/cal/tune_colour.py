@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# tools/tune_thresholds.py
+# tools/cal/tune_colours.py
 """
 HSV threshold tuning tool for the M&M sorter colour classifier.
 
@@ -9,11 +9,11 @@ is a YAML snippet that can be pasted directly into the colours: section
 of config/config.yaml.
 
 The tool is standalone and does not depend on any project modules.
-Only OpenCV, NumPy, Matplotlib are required.
+OpenCV, NumPy, and Matplotlib (for --plot) are required.
 
 Usage:
-    python tools/tune_thresholds.py [--input-dir INPUT_DIR] [--manifest MANIFEST] 
-                                    [--output-yaml OUTPUT_YAML] [--plot]
+    python tune_colours.py [--input-dir INPUT_DIR] [--manifest MANIFEST]
+                           [--output-yaml OUTPUT_YAML] [--plot]
 
 Procedure:
     1. Collect labelled samples with tools/collect_samples.py.
@@ -22,7 +22,7 @@ Procedure:
     4. Copy the printed YAML snippet into config/config.yaml under colours:
 
 Output:
-    Prints a per-colour summary (sample count, pixel count, HSV ranges).
+    Logs a per-colour summary (sample count, pixel count) to the terminal.
     Emits a colours: YAML snippet to stdout and optionally to --output-yaml.
     With --plot, writes one hue histogram PNG per colour to <input-dir>/plots/.
 
@@ -30,13 +30,18 @@ NOTE: non_mm samples appear in the dataset statistics but are excluded from
 threshold generation. Only the six colour classes are emitted in YAML.
 """
 
+import json
 import os
 import sys
-import json
 import argparse
 
 import cv2
 import numpy as np
+
+sys.path.insert(0, os.path.dirname(__file__))
+import _common
+
+log = _common.get_logger("tune_colours")
 
 # override these if the defaults feel too aggressive or too loose
 HUE_BINS = 180
@@ -44,9 +49,11 @@ HUE_SMOOTH_SIGMA = 3
 SV_LOW_PERCENTILE = 5
 SV_HIGH_PERCENTILE = 95
 BBOX_PADDING = 10
+
+# mask extraction parameters
 AUTO_BLUR_K = 5
-AUTO_SAT_THRESH = 60
-AUTO_MORPH_K = 7
+AUTO_SAT_THRESH = 40
+AUTO_MORPH_K = 5
 AUTO_ERODE_ITER = 1
 AUTO_DILATE_ITER = 2
 AUTO_MIN_AREA = 500
@@ -116,12 +123,7 @@ def extract_mask(image: np.ndarray) -> np.ndarray | None:
     saturation-threshold object extraction on a BGR image.
     returns a binary mask covering the largest detected object, or None on failure.
     """
-    blurred = cv2.GaussianBlur(image, (AUTO_BLUR_K, AUTO_BLUR_K), 0)
-    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-    _, mask = cv2.threshold(hsv[:, :, 1], AUTO_SAT_THRESH, 255, cv2.THRESH_BINARY)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (AUTO_MORPH_K, AUTO_MORPH_K))
-    mask = cv2.erode(mask, kernel, iterations=AUTO_ERODE_ITER)
-    mask = cv2.dilate(mask, kernel, iterations=AUTO_DILATE_ITER)
+    mask = _common.extract_mask(image, AUTO_BLUR_K, AUTO_SAT_THRESH, AUTO_MORPH_K, AUTO_ERODE_ITER, AUTO_DILATE_ITER)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         return None
@@ -143,13 +145,13 @@ def collect_pixels_for_sample(
     """
     img_rel = row.get("image_path")
     if not img_rel:
-        print(f"warning: manifest row missing image_path, skipping sample")
+        log.info("warning: manifest row missing image_path, skipping sample")
         return None
 
     img_path = os.path.join(input_dir, img_rel)
     image = cv2.imread(img_path)
     if image is None:
-        print(f"warning: failed to read image: {img_path}")
+        log.info(f"warning: failed to read image: {img_path}")
         return None
 
     bbox = row.get("bbox")
@@ -170,7 +172,7 @@ def collect_pixels_for_sample(
                 raise ValueError(f"bbox crop is empty after clamping to image bounds")
             crop = image[y1:y2, x1:x2]
         except (TypeError, ValueError) as e:
-            print(f"warning: malformed bbox in {img_rel}: {e}, skipping sample")
+            log.info(f"warning: malformed bbox in {img_rel}: {e}, skipping sample")
             return None
 
     mask = extract_mask(crop)
@@ -200,10 +202,10 @@ def load_manifest(path: str) -> list[dict]:
             try:
                 rows.append(json.loads(line))
             except json.JSONDecodeError as e:
-                print(f"warning: skipping malformed JSON at line {lineno}: {e}")
+                log.info(f"warning: skipping malformed JSON at line {lineno}: {e}")
                 skipped += 1
     if skipped:
-        print(f"warning: skipped {skipped} malformed manifest line(s)")
+        log.info(f"warning: skipped {skipped} malformed manifest line(s)")
     return rows
 
 def build_yaml_snippet(results: dict) -> str:
@@ -231,13 +233,13 @@ def save_plots(
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        print("error: matplotlib is required for --plot")
+        log.info("error: matplotlib is required for --plot")
         sys.exit(1)
 
     try:
         os.makedirs(plot_dir, exist_ok=True)
     except OSError as e:
-        print(f"error: cannot create plot directory {plot_dir}: {e}")
+        log.info(f"error: cannot create plot directory {plot_dir}: {e}")
         sys.exit(1)
 
     for label, hues in colour_data.items():
@@ -264,9 +266,9 @@ def save_plots(
         out_path = os.path.join(plot_dir, f"{label}_hue.png")
         try:
             fig.savefig(out_path, dpi=100)
-            print(f"  plot: {out_path}")
+            log.info(f"  plot: {out_path}")
         except OSError as e:
-            print(f"error: failed to save plot {out_path}: {e}")
+            log.info(f"error: failed to save plot {out_path}: {e}")
         plt.close(fig)
 
 def main() -> int:
@@ -279,12 +281,12 @@ def main() -> int:
 
     manifest_path = args.manifest or os.path.join(args.input_dir, MANIFEST_FILE)
     if not os.path.exists(manifest_path):
-        print(f"error: manifest not found: {manifest_path}")
+        log.info(f"error: manifest not found: {manifest_path}")
         return 1
 
     rows = load_manifest(manifest_path)
-    print(f"loaded {len(rows)} manifest entries from {manifest_path}")
-    print()
+    log.info(f"loaded {len(rows)} manifest entries from {manifest_path}")
+    log.info("")
 
     grouped: dict[str, list[dict]] = {}
     invalid = 0
@@ -292,7 +294,7 @@ def main() -> int:
         lbl = row.get("label_name")
         img = row.get("image_path")
         if not lbl or not img:
-            print(f"warning: skipping row missing label_name or image_path: {row}")
+            log.info(f"warning: skipping row missing label_name or image_path: {row}")
             invalid += 1
             continue
         grouped.setdefault(lbl, []).append(row)
@@ -300,11 +302,11 @@ def main() -> int:
     known = set(COLOUR_LABELS) | {"non_mm"}
     for lbl in grouped:
         if lbl not in known:
-            print(f"warning: unknown label '{lbl}' in manifest ({len(grouped[lbl])} row(s)), will be ignored")
+            log.info(f"warning: unknown label '{lbl}' in manifest ({len(grouped[lbl])} row(s)), will be ignored")
 
     if invalid:
-        print(f"warning: skipped {invalid} invalid manifest row(s)")
-        print()
+        log.info(f"warning: skipped {invalid} invalid manifest row(s)")
+        log.info("")
 
     results: dict = {}
     colour_hues: dict[str, np.ndarray] = {}
@@ -312,7 +314,7 @@ def main() -> int:
     for label in COLOUR_LABELS + ["non_mm"]:
         label_rows = grouped.get(label, [])
         if not label_rows:
-            print(f"{label}: no samples found")
+            log.info(f"{label}: no samples found")
             continue
 
         h_all, s_all, v_all = [], [], []
@@ -328,22 +330,22 @@ def main() -> int:
             v_all.append(v)
 
         usable = len(label_rows) - skipped
-        print(f"{label}:")
-        print(f"  samples: {usable} usable, {skipped} skipped")
+        log.info(f"{label}:")
+        log.info(f"  samples: {usable} usable, {skipped} skipped")
 
         if not h_all:
-            print("  warning: no usable samples, skipping")
-            print()
+            log.info("  warning: no usable samples, skipping")
+            log.info("")
             continue
 
         hues = np.concatenate(h_all)
         sats = np.concatenate(s_all)
         vals = np.concatenate(v_all)
 
-        print(f"  pixels:  {len(hues)}")
+        log.info(f"  pixels:  {len(hues)}")
 
         if label == "non_mm":
-            print()
+            log.info("")
             continue
 
         h_ranges = compute_hue_ranges(hues)
@@ -352,29 +354,24 @@ def main() -> int:
 
         results[label] = {"h": h_ranges, "s": s_range, "v": v_range}
         colour_hues[label] = hues
-
-        h_str = ", ".join(f"[{lo}, {hi}]" for lo, hi in h_ranges)
-        print(f"  h:       {h_str}")
-        print(f"  s:       [{s_range[0]}, {s_range[1]}]")
-        print(f"  v:       [{v_range[0]}, {v_range[1]}]")
-        print()
+        log.info("")
 
     if not results:
-        print("error: no colour data to emit")
+        log.info("error: no colour data to emit")
         return 1
 
     yaml_snippet = build_yaml_snippet(results)
-    print("-" * 40)
-    print(yaml_snippet)
-    print("-" * 40)
+    log.info("-" * 40)
+    log.info(yaml_snippet)
+    log.info("-" * 40)
 
     if args.output_yaml:
         try:
             with open(args.output_yaml, "w", encoding="utf-8") as f:
                 f.write(yaml_snippet + "\n")
-            print(f"wrote YAML snippet to {args.output_yaml}")
+            log.info(f"wrote YAML snippet to {args.output_yaml}")
         except OSError as e:
-            print(f"error: failed to write {args.output_yaml}: {e}")
+            log.info(f"error: failed to write {args.output_yaml}: {e}")
             return 1
 
     if args.plot:
