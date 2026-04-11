@@ -45,12 +45,12 @@ reports are written to the `_report/` directory
 
 #### 7. finally, run the pipeline
 
-if there are no problem in the test results, run the pipeline itself with
+if there are no problems in the test results, run the pipeline itself with
 ```bash
 python3 sort.py
 ```
 
-you can find about options either via:
+you can find out about options via
 ```bash
 python3 sort.py --help
 ```
