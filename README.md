@@ -14,13 +14,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-#### 4. run the setup script
+#### 3. run the setup script
 setup script installs the requirements and creates some directories. it can adapt both dev and prod environments
 ```bash
 ./tools/setup.sh dev
 ```
 
-#### 5. create a configuration from template
+#### 4. create a configuration from template
 
 copy template configuration
 ```bash
@@ -29,7 +29,7 @@ cp config/config.yaml.template config/config.yaml
 
 then modify any field for your specific setup
 
-#### 6. run the tests
+#### 5. run the tests
 
 ```bash
 pytest
@@ -43,7 +43,7 @@ to run with coverage and HTML reports:
 
 reports are written to the `_report/` directory
 
-#### 7. finally, run the pipeline
+#### 6. finally, run the pipeline
 
 if there are no problems in the test results, run the pipeline itself with
 ```bash
@@ -54,4 +54,5 @@ you can find out about options via
 ```bash
 python3 sort.py --help
 ```
+
 however, for a more detailed explanation about all the controls, reading the `sort.py` file docstring is recommended
