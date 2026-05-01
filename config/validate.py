@@ -85,6 +85,9 @@ _OPTIONAL_FIELDS: dict[str, dict[str, type | tuple[type, ...]]] = {
         "sat_max_dark": int,
         "val_min_dark": int,
         "val_max_dark": int,
+        "sec_morph_erode_iter": int,
+        "sec_min_area": int,
+        "sec_morph_dilate_iter": int,
     },
     "uart": {
         "timeout": (int, float),
@@ -236,6 +239,12 @@ def _validate_ranges_preprocess(pre: dict) -> None:
         raise ConfigError("preprocess.val_min_dark must be in range 0--255")
     if "val_max_dark" in pre and not (0 <= pre["val_max_dark"] <= 255):
         raise ConfigError("preprocess.val_max_dark must be in range 0--255")
+    if "sec_morph_erode_iter" in pre and pre["sec_morph_erode_iter"] < 0:
+        raise ConfigError("preprocess.sec_morph_erode_iter must be >= 0")
+    if "sec_min_area" in pre and pre["sec_min_area"] < 0:
+        raise ConfigError("preprocess.sec_min_area must be >= 0")
+    if "sec_morph_dilate_iter" in pre and pre["sec_morph_dilate_iter"] < 0:
+        raise ConfigError("preprocess.sec_morph_dilate_iter must be >= 0")
 
 def _validate_ranges_features(feat: dict) -> None:
     if feat["hue_bins"] < 1:

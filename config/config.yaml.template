@@ -18,8 +18,8 @@ camera:
   auto_wb: true              # (O) automatic white balance; default true
   wb_temperature: 4600       # (O) fixed white balance in kelvin (1000--10000), only used when auto_wb is false
   power_line_frequency: 1    # (O) anti-flicker: 0 = disabled, 1 = 50Hz, 2 = 60Hz; default 0
-  # saturation: 64           # (O) camera saturation (0--128 typical), omit to use camera default
-  # gamma: 100               # (O) gamma correction (0--500), omit to use camera default
+  saturation: 64             # (O) camera saturation (0--128 typical), omit to use camera default
+  gamma: 100                 # (O) gamma correction (0--500), omit to use camera default
 
 preprocess:
   blur_kernel: 5             # (R) gaussian blur kernel size, must be odd
