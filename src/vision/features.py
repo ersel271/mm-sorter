@@ -249,12 +249,17 @@ class FeatureExtractor:
 
     def _compute_aspect_ratio(self, contour: np.ndarray) -> float:
         """
-        normalised bounding box aspect ratio: max(w,h) / min(w,h).
+        orientation-invariant aspect ratio: max(w,h) / min(w,h) of the
+        minimum-area rotated bounding rectangle.
 
-        always >= 1.0 regardless of object orientation.
-        values near 1.0 indicate square-like objects (M&Ms ~1.0-1.35).
+        always >= 1.0. unlike axis-aligned boundingRect, this is stable
+        regardless of object rotation (e.g. a tilted almond reports its
+        true elongation rather than the projection onto frame axes).
+        values near 1.0 indicate compact objects (M&Ms ~1.0-1.35).
         """
-        _, _, w, h = cv2.boundingRect(contour)
+        _, (w, h), _ = cv2.minAreaRect(contour)
+        if min(w, h) == 0:
+            return 1.0
         return float(max(w, h) / min(w, h))
 
     def _compute_solidity(self, contour: np.ndarray) -> float:
