@@ -34,6 +34,9 @@ preprocess:
   sat_max_dark: 90           # (O) secondary path sat upper bound (0--255); default (255, no ceiling)
   val_min_dark: 50           # (O) secondary path brightness floor (0--255); default (0, no floor)
   val_max_dark: 140          # (O) secondary path brightness ceiling (0--255); default (0, disabled)
+  sec_morph_erode_iter: 1    # (O) erosion iterations on secondary mask before contour filter (>= 0); default 0
+  sec_min_area: 4000         # (O) minimum contour area to keep in secondary mask (>= 0); default 0 (disabled)
+  sec_morph_dilate_iter: 12  # (O) dilation iterations on secondary mask after contour filter (>= 0); default 0
 
 features:
   hue_bins: 180              # (R) number of bins for the hue histogram (>= 1)
