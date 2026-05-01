@@ -54,6 +54,8 @@ class Camera:
         self._apply_focus()
         self._apply_exposure()
         self._apply_white_balance()
+        self._apply_saturation()
+        self._apply_gamma()
         self._apply_power_line_freq()
 
         props = self.get_properties()
@@ -158,6 +160,8 @@ class Camera:
             "autofocus": int(self._cap.get(cv2.CAP_PROP_AUTOFOCUS)),
             "auto_exposure": int(self._cap.get(cv2.CAP_PROP_AUTO_EXPOSURE)),
             "auto_wb": int(self._cap.get(cv2.CAP_PROP_AUTO_WB)),
+            "saturation": int(self._cap.get(cv2.CAP_PROP_SATURATION)),
+            "gamma": int(self._cap.get(cv2.CAP_PROP_GAMMA)),
         }
 
     def release(self) -> None:
@@ -189,6 +193,10 @@ class Camera:
             self._cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
         else:
             self._cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+            # nudge to a different value first so the UVC driver sends a
+            # real motor command even if the register already reads target
+            self._cap.set(cv2.CAP_PROP_FOCUS, self._cfg["focus"] + 1)
+            self._cap.read()  # let motor reach nudge position before sending target
             self._cap.set(cv2.CAP_PROP_FOCUS, self._cfg["focus"])
 
     def _apply_exposure(self) -> None:
@@ -209,6 +217,22 @@ class Camera:
             self._cap.set(cv2.CAP_PROP_AUTO_WB, 0)
             temp = self._cfg.get("wb_temperature", 4600)
             self._cap.set(cv2.CAP_PROP_WB_TEMPERATURE, temp)
+
+    def _apply_saturation(self) -> None:
+        if self._cap is None:
+            raise RuntimeError("camera is not open")
+        sat = self._cfg.get("saturation")
+        if sat is None:
+            return
+        self._cap.set(cv2.CAP_PROP_SATURATION, sat)
+
+    def _apply_gamma(self) -> None:
+        if self._cap is None:
+            raise RuntimeError("camera is not open")
+        gamma = self._cfg.get("gamma")
+        if gamma is None:
+            return
+        self._cap.set(cv2.CAP_PROP_GAMMA, gamma)
 
     def _apply_power_line_freq(self) -> None:
         if self._cap is None:
