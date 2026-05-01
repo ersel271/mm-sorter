@@ -1,13 +1,18 @@
 # tests/unit/test_camera.py
 
+import copy
+import tempfile
+import yaml
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import cv2
 import pytest
 import numpy as np
 
+from config import Config
 from src.io import Camera
-from tests.helpers.config_helpers import make_config
+from tests.helpers.config_helpers import FULL_DATA, make_config
 
 @pytest.fixture(autouse=True)
 def _stub_subprocess():
@@ -119,6 +124,62 @@ class TestCameraOpenMock:
             cam.open()
             set_calls = {call[0][0]: call[0][1] for call in mock_cap.set.call_args_list}
             assert set_calls.get(cv2.CAP_PROP_WB_TEMPERATURE) == 5000
+
+    def test_open_applies_saturation(self):
+        cfg = make_config(camera={"saturation": 90})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+            cam = Camera(cfg)
+            cam.open()
+            set_calls = {call[0][0]: call[0][1] for call in mock_cap.set.call_args_list}
+            assert set_calls.get(cv2.CAP_PROP_SATURATION) == 90
+
+    def test_open_skips_saturation_when_absent(self):
+        data = copy.deepcopy(FULL_DATA)
+        del data["camera"]["saturation"]
+        tmp = Path(tempfile.mkdtemp()) / "config.yaml"
+        with open(tmp, "w") as f:
+            yaml.dump(data, f)
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+            cam = Camera(Config(tmp))
+            cam.open()
+            set_props = [call[0][0] for call in mock_cap.set.call_args_list]
+            assert cv2.CAP_PROP_SATURATION not in set_props
+
+    def test_open_applies_gamma(self):
+        cfg = make_config(camera={"gamma": 85})
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+            cam = Camera(cfg)
+            cam.open()
+            set_calls = {call[0][0]: call[0][1] for call in mock_cap.set.call_args_list}
+            assert set_calls.get(cv2.CAP_PROP_GAMMA) == 85
+
+    def test_open_skips_gamma_when_absent(self):
+        data = copy.deepcopy(FULL_DATA)
+        del data["camera"]["gamma"]
+        tmp = Path(tempfile.mkdtemp()) / "config.yaml"
+        with open(tmp, "w") as f:
+            yaml.dump(data, f)
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+            cam = Camera(Config(tmp))
+            cam.open()
+            set_props = [call[0][0] for call in mock_cap.set.call_args_list]
+            assert cv2.CAP_PROP_GAMMA not in set_props
 
 @pytest.mark.smoke
 @pytest.mark.regression
@@ -372,3 +433,16 @@ class TestCameraProperties:
             assert "fps" in props
             assert "format" in props
             assert "focus" in props
+
+    def test_get_properties_includes_saturation_and_gamma(self, default_cfg):
+        with patch("src.io.camera.cv2.VideoCapture") as mock_vc:
+            mock_cap = MagicMock()
+            mock_cap.isOpened.return_value = True
+            mock_cap.get.return_value = 0
+            mock_vc.return_value = mock_cap
+
+            cam = Camera(default_cfg)
+            cam.open()
+            props = cam.get_properties()
+            assert "saturation" in props
+            assert "gamma" in props

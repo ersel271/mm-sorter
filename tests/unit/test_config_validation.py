@@ -364,3 +364,27 @@ class TestValidationOptionalFields:
     def test_log_queue_size_zero(self):
         with pytest.raises(ConfigError, match="log_queue_size"):
             make_config(system={"log_queue_size": 0})
+
+    def test_saturation_wrong_type(self):
+        with pytest.raises(ConfigError, match=r"camera\.saturation"):
+            make_config(camera={"saturation": "high"})
+
+    def test_saturation_below_range(self):
+        with pytest.raises(ConfigError, match="saturation"):
+            make_config(camera={"saturation": -1})
+
+    def test_saturation_above_range(self):
+        with pytest.raises(ConfigError, match="saturation"):
+            make_config(camera={"saturation": 129})
+
+    def test_gamma_wrong_type(self):
+        with pytest.raises(ConfigError, match=r"camera\.gamma"):
+            make_config(camera={"gamma": "bright"})
+
+    def test_gamma_below_range(self):
+        with pytest.raises(ConfigError, match="gamma"):
+            make_config(camera={"gamma": -1})
+
+    def test_gamma_above_range(self):
+        with pytest.raises(ConfigError, match="gamma"):
+            make_config(camera={"gamma": 501})

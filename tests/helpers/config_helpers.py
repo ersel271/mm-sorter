@@ -22,6 +22,8 @@ FULL_DATA: dict = {
         "auto_wb": True,
         "wb_temperature": 4600,
         "power_line_frequency": 1,
+        "saturation": 64,
+        "gamma": 100,
     },
     "preprocess": {
         "roi_enabled": False,
