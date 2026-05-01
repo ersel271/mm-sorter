@@ -73,6 +73,8 @@ _OPTIONAL_FIELDS: dict[str, dict[str, type | tuple[type, ...]]] = {
         "auto_wb": bool,
         "wb_temperature": (int, float),
         "power_line_frequency": int,
+        "saturation": int,
+        "gamma": int,
     },
     "preprocess": {
         "roi_enabled": bool,
@@ -210,6 +212,10 @@ def _validate_ranges_camera(cam: dict) -> None:
         raise ConfigError("camera.wb_temperature must be in range 1000--10000")
     if "power_line_frequency" in cam and cam["power_line_frequency"] not in {0, 1, 2}:
         raise ConfigError("camera.power_line_frequency must be 0, 1, or 2")
+    if "saturation" in cam and not (0 <= cam["saturation"] <= 128):
+        raise ConfigError("camera.saturation must be in range 0--128")
+    if "gamma" in cam and not (0 <= cam["gamma"] <= 500):
+        raise ConfigError("camera.gamma must be in range 0--500")
 
 def _validate_ranges_preprocess(pre: dict) -> None:
     if pre["blur_kernel"] % 2 == 0:
