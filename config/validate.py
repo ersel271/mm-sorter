@@ -220,7 +220,7 @@ def _validate_ranges_camera(cam: dict) -> None:
     if "gamma" in cam and not (0 <= cam["gamma"] <= 500):
         raise ConfigError("camera.gamma must be in range 0--500")
 
-def _validate_ranges_preprocess(pre: dict) -> None:
+def _validate_ranges_preprocess(pre: dict) -> None:  # noqa: CCR001
     if pre["blur_kernel"] % 2 == 0:
         raise ConfigError("preprocess.blur_kernel must be odd")
     if pre["morph_kernel"] < 1:
