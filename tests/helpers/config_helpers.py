@@ -38,6 +38,9 @@ FULL_DATA: dict = {
         "sat_max_dark": 90,
         "val_min_dark": 50,
         "val_max_dark": 140,
+        "sec_morph_erode_iter": 1,
+        "sec_min_area": 4000,
+        "sec_morph_dilate_iter": 12,
     },
     "features": {
         "hue_bins": 180,

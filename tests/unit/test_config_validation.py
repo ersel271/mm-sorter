@@ -388,3 +388,34 @@ class TestValidationOptionalFields:
     def test_gamma_above_range(self):
         with pytest.raises(ConfigError, match="gamma"):
             make_config(camera={"gamma": 501})
+
+    def test_sec_morph_erode_iter_wrong_type(self):
+        with pytest.raises(ConfigError, match=r"preprocess\.sec_morph_erode_iter"):
+            make_config(preprocess={"sec_morph_erode_iter": 1.5})
+
+    def test_sec_morph_erode_iter_negative(self):
+        with pytest.raises(ConfigError, match="sec_morph_erode_iter"):
+            make_config(preprocess={"sec_morph_erode_iter": -1})
+
+    def test_sec_min_area_wrong_type(self):
+        with pytest.raises(ConfigError, match=r"preprocess\.sec_min_area"):
+            make_config(preprocess={"sec_min_area": "large"})
+
+    def test_sec_min_area_negative(self):
+        with pytest.raises(ConfigError, match="sec_min_area"):
+            make_config(preprocess={"sec_min_area": -1})
+
+    def test_sec_morph_dilate_iter_wrong_type(self):
+        with pytest.raises(ConfigError, match=r"preprocess\.sec_morph_dilate_iter"):
+            make_config(preprocess={"sec_morph_dilate_iter": 2.0})
+
+    def test_sec_morph_dilate_iter_negative(self):
+        with pytest.raises(ConfigError, match="sec_morph_dilate_iter"):
+            make_config(preprocess={"sec_morph_dilate_iter": -1})
+
+    def test_sec_params_zero_accepted(self):
+        make_config(preprocess={
+            "sec_morph_erode_iter": 0,
+            "sec_min_area": 0,
+            "sec_morph_dilate_iter": 0,
+        })
