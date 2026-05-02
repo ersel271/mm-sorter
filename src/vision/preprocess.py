@@ -142,10 +142,26 @@ class Preprocessor:
             cv2.bitwise_and(dark_sat_lower, dark_sat_upper),
             cv2.bitwise_and(dark_val_upper, dark_val_lower),
         )
-        mask = cv2.bitwise_or(primary, secondary)
 
         morph_k = self._cfg["morph_kernel"]
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (morph_k, morph_k))
+
+        # clean secondary mask before merging with primary
+        sec_erode = self._cfg.get("sec_morph_erode_iter", 0)
+        if sec_erode > 0:
+            secondary = cv2.erode(secondary, kernel, iterations=sec_erode)
+        sec_min_area = self._cfg.get("sec_min_area", 0)
+        if sec_min_area > 0:
+            sec_contours, _ = cv2.findContours(secondary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            secondary = np.zeros_like(secondary)
+            for c in sec_contours:
+                if cv2.contourArea(c) >= sec_min_area:
+                    cv2.drawContours(secondary, [cv2.convexHull(c)], -1, 255, cv2.FILLED)
+        sec_dilate = self._cfg.get("sec_morph_dilate_iter", 0)
+        if sec_dilate > 0:
+            secondary = cv2.dilate(secondary, kernel, iterations=sec_dilate)
+
+        mask = cv2.bitwise_or(primary, secondary)
         mask = cv2.erode(mask, kernel, iterations=self._cfg.get("morph_erode_iter", 1))
         mask = cv2.dilate(mask, kernel, iterations=self._cfg.get("morph_dilate_iter", 2))
 
