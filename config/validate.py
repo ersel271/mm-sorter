@@ -77,6 +77,7 @@ _OPTIONAL_FIELDS: dict[str, dict[str, type | tuple[type, ...]]] = {
         "gamma": int,
     },
     "preprocess": {
+        "max_area": int,
         "roi_enabled": bool,
         "roi_fraction": (int, float),
         "morph_erode_iter": int,
@@ -221,6 +222,8 @@ def _validate_ranges_camera(cam: dict) -> None:
         raise ConfigError("camera.gamma must be in range 0--500")
 
 def _validate_ranges_preprocess(pre: dict) -> None:  # noqa: CCR001
+    if "max_area" in pre and pre["max_area"] < 0:
+        raise ConfigError("preprocess.max_area must be >= 0")
     if pre["blur_kernel"] % 2 == 0:
         raise ConfigError("preprocess.blur_kernel must be odd")
     if pre["morph_kernel"] < 1:
