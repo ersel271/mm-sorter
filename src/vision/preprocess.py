@@ -79,7 +79,8 @@ class Preprocessor:
         mask = self._make_mask(hsv)
         contour, area = self._find_largest_contour(mask)
 
-        if contour is None or area < self._cfg["min_area"]:
+        max_area = self._cfg.get("max_area", 0)
+        if contour is None or area < self._cfg["min_area"] or (max_area > 0 and area > max_area):
             if self._prev_found:
                 log.info("object lost")
             self._prev_found = False
