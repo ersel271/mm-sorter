@@ -26,6 +26,7 @@ preprocess:
   sat_threshold: 40          # (R) minimum saturation to consider a pixel as object
   morph_kernel: 5            # (R) morphological operation kernel size (>= 1)
   min_area: 500              # (R) minimum contour area in pixels to accept as an object
+  max_area: 0                # (O) maximum contour area in pixels (0 = disabled); default 0
   roi_enabled: false         # (O) true to crop a centre region from the frame; default false
   roi_fraction: 0.9          # (O) fraction of frame to keep when roi is enabled (0.0, 1.0]; default 0.9
   morph_erode_iter: 1        # (O) erosion iterations for mask cleanup (>= 0); default 1
