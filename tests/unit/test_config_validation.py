@@ -389,6 +389,17 @@ class TestValidationOptionalFields:
         with pytest.raises(ConfigError, match="gamma"):
             make_config(camera={"gamma": 501})
 
+    def test_max_area_wrong_type(self):
+        with pytest.raises(ConfigError, match=r"preprocess\.max_area"):
+            make_config(preprocess={"max_area": 5000.0})
+
+    def test_max_area_negative(self):
+        with pytest.raises(ConfigError, match="max_area"):
+            make_config(preprocess={"max_area": -1})
+
+    def test_max_area_zero_accepted(self):
+        make_config(preprocess={"max_area": 0})
+
     def test_sec_morph_erode_iter_wrong_type(self):
         with pytest.raises(ConfigError, match=r"preprocess\.sec_morph_erode_iter"):
             make_config(preprocess={"sec_morph_erode_iter": 1.5})

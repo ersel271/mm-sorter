@@ -28,6 +28,7 @@ FULL_DATA: dict = {
     "preprocess": {
         "roi_enabled": False,
         "roi_fraction": 0.9,
+        "max_area": 0,
         "blur_kernel": 5,
         "sat_threshold": 40,
         "morph_kernel": 5,
