@@ -221,7 +221,7 @@ def _validate_ranges_camera(cam: dict) -> None:
     if "gamma" in cam and not (0 <= cam["gamma"] <= 500):
         raise ConfigError("camera.gamma must be in range 0--500")
 
-def _validate_ranges_preprocess(pre: dict) -> None:  # noqa: CCR001
+def _validate_ranges_preprocess(pre: dict) -> None:
     if "max_area" in pre and pre["max_area"] < 0:
         raise ConfigError("preprocess.max_area must be >= 0")
     if pre["blur_kernel"] % 2 == 0:
